@@ -1,0 +1,33 @@
+executor: LocalExecutor
+
+# create your admin user on the API Server (Airflow 3.x)
+apiServer:
+  defaultUser:
+    enabled: true
+    username: admin
+    password: admin
+    email: admin@example.com
+  service:
+    type: LoadBalancer
+
+# bind your existing PVCs
+dags:
+  persistence:
+    enabled: true
+    existingClaim: airflow-local-dags-folder
+
+logs:
+  persistence:
+    enabled: true
+    existingClaim: airflow-local-logs-folder
+
+plugins:
+  persistence:
+    enabled: true
+    existingClaim: airflow-local-plugins-folder
+
+# optional: disable unused components
+redis:
+  enabled: false
+flower:
+  enabled: false
