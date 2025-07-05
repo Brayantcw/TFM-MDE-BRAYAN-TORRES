@@ -1,13 +1,9 @@
-"""
-Example DAG demonstrating basic Airflow functionality
-"""
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 
-# Default arguments for the DAG
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -18,43 +14,31 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-# Define the DAG
-dag = DAG(
-    'example_dag',
-    default_args=default_args,
-    description='A simple example DAG',
-    schedule_interval=timedelta(days=1),
-    catchup=False,
-    tags=['example'],
-)
-
-# Define tasks
-start = EmptyOperator(
-    task_id='start',
-    dag=dag,
-)
-
 def print_hello():
-    """Simple function to print hello"""
     print("Hello from Airflow!")
     return "Hello World!"
 
-hello_task = PythonOperator(
-    task_id='hello_task',
-    python_callable=print_hello,
-    dag=dag,
-)
+with DAG(
+    'example_dag',
+    default_args=default_args,
+    description='A simple example DAG',
+    schedule=timedelta(days=1),
+    catchup=False,
+    tags=['example'],
+) as dag:
 
-bash_task = BashOperator(
-    task_id='bash_task',
-    bash_command='echo "Hello from Bash!" && date',
-    dag=dag,
-)
+    start = EmptyOperator(task_id='start')
 
-end = EmptyOperator(
-    task_id='end',
-    dag=dag,
-)
+    hello_task = PythonOperator(
+        task_id='hello_task',
+        python_callable=print_hello,
+    )
 
-# Define task dependencies
-start >> hello_task >> bash_task >> end 
+    bash_task = BashOperator(
+        task_id='bash_task',
+        bash_command='echo "Hello from Bash!" && date',
+    )
+
+    end = EmptyOperator(task_id='end')
+
+    start >> hello_task >> bash_task >> end

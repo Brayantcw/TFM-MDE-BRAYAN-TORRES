@@ -1,108 +1,115 @@
 #!/usr/bin/env bash
+# install-airflow.sh
 #
-# Airflow Kubernetes Installation Script for Docker Desktop (no volumes)
-# Installs Apache Airflow via Helm into your local docker-desktop k8s cluster.
-# Uses LocalExecutor with ephemeral emptyDir storage.
+# Apache Airflow installer for Docker-Desktop Kubernetes
+# - LocalExecutor
+# - hostPath PV/PVCs from ./k8s/
+# - real Postgres migrations via built-in env-vars
+# - full debug/logging
 
-set -e
+set -euo pipefail
+set -x      # ← turn on tracing
 
-# Colors
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+# ─── Colors ───────────────────────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m';
+YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
 
-# Config
-NAMESPACE="airflow"
-RELEASE_NAME="airflow"
-HELM_CHART="apache-airflow/airflow"
-VALUES_FILE="values.yaml"
-
-print_status()  { echo -e "${GREEN}✅ $1${NC}"; }
-print_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
-print_error()   { echo -e "${RED}❌ $1${NC}"; }
-print_info()    { echo -e "${BLUE}ℹ️  $1${NC}"; }
-
-check_prerequisites() {
-  print_info "Checking prerequisites..."
-  command -v kubectl >/dev/null 2>&1 || { print_error "kubectl not found"; exit 1; }
-  command -v helm   >/dev/null 2>&1 || { print_error "helm not found";   exit 1; }
-  kubectl cluster-info >/dev/null 2>&1 || { print_error "K8s cluster down";   exit 1; }
-  if [ "$(kubectl config current-context)" != "docker-desktop" ]; then
-    print_warning "Switching to docker-desktop context"
-    kubectl config use-context docker-desktop
-  fi
-  print_status "Prerequisites OK"
-}
-
-create_namespace() {
-  print_info "Ensuring namespace '$NAMESPACE' exists..."
-  kubectl create ns "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-  print_status "Namespace ready"
-}
-
-add_helm_repo() {
-  print_info "Adding/updating Airflow Helm repo..."
-  helm repo add apache-airflow https://airflow.apache.org 2>/dev/null || true
-  helm repo update
-  print_status "Helm repo ready"
-}
-
-install_airflow() {
-  print_info "Installing/upgrading Airflow..."
-  [ -f "$VALUES_FILE" ] || { print_error "$VALUES_FILE not found"; exit 1; }
-  helm upgrade --install "$RELEASE_NAME" "$HELM_CHART" \
-    --namespace "$NAMESPACE" \
-    --create-namespace \
-    -f "$VALUES_FILE" \
-    --wait \
-    --timeout=10m
-  print_status "Airflow deployed"
-}
-
-wait_for_pods() {
-  print_info "Waiting for all pods to be Ready..."
-  kubectl wait --for=condition=ready pod \
-    -l app.kubernetes.io/instance="$RELEASE_NAME" \
-    -n "$NAMESPACE" \
-    --timeout=300s
-  print_status "All pods Ready"
-}
-
-show_status() {
-  print_info "Resources in '$NAMESPACE':"
-  kubectl get pods,svc -n "$NAMESPACE"
-}
-
-create_port_forward_script() {
-  print_info "Creating port-forward script..."
-  cat > port-forward.sh << 'EOF'
-#!/usr/bin/env bash
+# ─── Configuration ────────────────────────────────────────────────────────
 NAMESPACE="airflow"
 RELEASE="airflow"
+CHART="apache-airflow/airflow"
+VALUES="values.yaml"
 
-SVC=$(kubectl get svc -n $NAMESPACE \
-  -l "app.kubernetes.io/instance=$RELEASE,app.kubernetes.io/component=api-server" \
-  -o jsonpath='{.items[0].metadata.name}')
-echo "Port-forwarding $SVC → localhost:8080"
+# ─── Helpers ──────────────────────────────────────────────────────────────
+info()    { echo -e "${BLUE}ℹ️  $*${NC}"; }
+success() { echo -e "${GREEN}✅ $*${NC}"; }
+warn()    { echo -e "${YELLOW}⚠️  $*${NC}"; }
+error()   { echo -e "${RED}❌ $*${NC}"; exit 1; }
+
+# ─── 1. Preconditions ─────────────────────────────────────────────────────
+info "Checking prerequisites..."
+command -v kubectl >/dev/null || error "kubectl not installed"
+command -v helm   >/dev/null || error "helm not installed"
+kubectl cluster-info >/dev/null || error "K8s cluster not accessible"
+
+if [ "$(kubectl config current-context)" != "docker-desktop" ]; then
+  warn "Switching to docker-desktop context"
+  kubectl config use-context docker-desktop
+fi
+success "Prerequisites OK"
+
+# ─── 2. Namespace & Volumes ───────────────────────────────────────────────
+info "Ensuring namespace '$NAMESPACE' exists..."
+kubectl create ns "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+success "Namespace ready"
+
+info "Applying PVs (cluster-wide)…"
+
+apply_volumes() {
+  print_info "Applying PVs & PVCs from k8s/…"
+  kubectl apply -f k8s/ \
+    || { print_error "Failed to apply PVs/PVCs"; exit 1; }
+  print_status "All PVs & PVCs applied"
+}
+
+
+# ─── 3. Helm Repo ─────────────────────────────────────────────────────────
+info "Adding/updating Apache Airflow Helm repo…"
+helm repo add apache-airflow https://airflow.apache.org 2>/dev/null || true
+helm repo update
+success "Helm repo ready"
+
+# ─── 4. Install/Upgrade Airflow ────────────────────────────────────────────
+info "Deploying Airflow release '$RELEASE'…"
+[ -f "$VALUES" ] || error "Values file '$VALUES' not found!"
+
+# Print the exact command we’re about to run
+echo
+echo ">> helm upgrade --install $RELEASE $CHART \\"
+echo "     -n $NAMESPACE \\"
+echo "     -f $VALUES \\"
+echo "     --wait --wait-for-jobs --timeout=10m \\"
+echo "     --debug"
+echo
+
+helm upgrade --install "$RELEASE" "$CHART" \
+  -n "$NAMESPACE" \
+  -f "$VALUES" \
+  --wait \
+  --wait-for-jobs \
+  --timeout=10m \
+  --debug
+
+success "Helm release applied"
+
+# ─── 5. Wait for Pods ─────────────────────────────────────────────────────
+info "Waiting for Airflow pods to be ready…"
+kubectl wait pod \
+  -l app.kubernetes.io/instance="$RELEASE" \
+  -n "$NAMESPACE" \
+  --for=condition=Ready \
+  --timeout=300s
+
+success "All pods are Ready"
+
+# ─── 6. Status & Port-Forward ─────────────────────────────────────────────
+info "Current resources in ns/$NAMESPACE:"
+kubectl get pods,svc,pvc -n "$NAMESPACE"
+kubectl get pv
+
+cat > port-forward.sh << 'EOF'
+#!/usr/bin/env bash
+set -e
+NAMESPACE="airflow"
+# find the API Server service
+SVC=$(kubectl get svc -n $NAMESPACE -o jsonpath='{.items[*].metadata.name}' \
+      | tr ' ' '\n' | grep -E 'api-server$' | head -n1)
+echo "Forwarding $SVC → localhost:8080"
 kubectl port-forward svc/$SVC 8080:8080 -n $NAMESPACE
 EOF
-  chmod +x port-forward.sh
-  print_status "port-forward.sh created"
-}
+chmod +x port-forward.sh
+success "Created ./port-forward.sh"
 
-show_next_steps() {
-  echo
-  echo -e "${GREEN}🎉 Done!${NC}"
-  echo "Run ./port-forward.sh then open http://localhost:8080 (admin/admin)"
-}
-
-main() {
-  check_prerequisites
-  create_namespace
-  add_helm_repo
-  install_airflow
-  wait_for_pods
-  show_status
-  create_port_forward_script
-  show_next_steps
-}
-
-main "$@"
+echo
+echo -e "${GREEN}🎉 Installation complete!${NC}"
+echo "Run ./port-forward.sh and open http://localhost:8080 (admin/admin)"

@@ -31,3 +31,11 @@ redis:
   enabled: false
 flower:
   enabled: false
+
+enableBuiltInSecretEnvVars:
+  AIRFLOW__CORE__FERNET_KEY: true
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: true
+  AIRFLOW__WEBSERVER__SECRET_KEY: true
+
+waitForMigrations:
+    enabled: true
