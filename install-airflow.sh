@@ -43,14 +43,17 @@ info "Ensuring namespace '$NAMESPACE' exists..."
 kubectl create ns "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 success "Namespace ready"
 
-info "Applying PVs (cluster-wide)…"
 
 apply_volumes() {
-  print_info "Applying PVs & PVCs from k8s/…"
-  kubectl apply -f k8s/ \
-    || { print_error "Failed to apply PVs/PVCs"; exit 1; }
-  print_status "All PVs & PVCs applied"
+  info "Applying all PVs & PVCs from ./k8s/…"
+  if ! kubectl apply -f k8s/; then
+    error "Failed to apply PVs/PVCs"
+  fi
+  success "All PVs & PVCs applied"
 }
+
+# **Call** it here:
+apply_volumes
 
 
 # ─── 3. Helm Repo ─────────────────────────────────────────────────────────
@@ -63,22 +66,7 @@ success "Helm repo ready"
 info "Deploying Airflow release '$RELEASE'…"
 [ -f "$VALUES" ] || error "Values file '$VALUES' not found!"
 
-# Print the exact command we’re about to run
-echo
-echo ">> helm upgrade --install $RELEASE $CHART \\"
-echo "     -n $NAMESPACE \\"
-echo "     -f $VALUES \\"
-echo "     --wait --wait-for-jobs --timeout=10m \\"
-echo "     --debug"
-echo
-
-helm upgrade --install "$RELEASE" "$CHART" \
-  -n "$NAMESPACE" \
-  -f "$VALUES" \
-  --wait \
-  --wait-for-jobs \
-  --timeout=10m \
-  --debug
+helm install airflow apache-airflow/airflow -f values.yaml -n airflow
 
 success "Helm release applied"
 

@@ -11,4 +11,4 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/Users/brayantorres/Documents/tfm/dags" 
+    path: "/Users/brayantorres/Documents/tfm/plugins" 

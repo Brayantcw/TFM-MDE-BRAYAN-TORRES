@@ -1,3 +1,11 @@
+images:
+  airflow:
+    repository: brayanto/airflow-custom
+    tag: "3.0.2"
+    # digest: ~            # leave unset if you’re using tag
+    pullPolicy: IfNotPresent
+
+
 executor: LocalExecutor
 
 # create your admin user on the API Server (Airflow 3.x)
@@ -32,10 +40,3 @@ redis:
 flower:
   enabled: false
 
-enableBuiltInSecretEnvVars:
-  AIRFLOW__CORE__FERNET_KEY: true
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: true
-  AIRFLOW__WEBSERVER__SECRET_KEY: true
-
-waitForMigrations:
-    enabled: true

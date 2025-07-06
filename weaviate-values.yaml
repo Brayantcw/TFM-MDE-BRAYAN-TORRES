@@ -1,0 +1,38 @@
+# ——— Persistence ———
+storage:
+  size: 2Gi
+# ——— Service exposure ———
+service:
+  type: LoadBalancer   # or NodePort for Docker Desktop
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+
+# ——— Resource sizing (optional) ———
+resources:
+  limits:
+    cpu: "1"
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# ——— Module configuration (optional) ———
+authentication:
+  anonymous_access:
+    enabled: true
+  # apikey:
+  #   enabled: true
+  #   allowed_keys:
+  #     - your-key
+  #   users:
+  #     - your-user
+
+# ——— Image version ———
+image:
+  tag: "1.31.5"        # pin a specific Weaviate version
+  pullPolicy: IfNotPresent

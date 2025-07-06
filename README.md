@@ -175,3 +175,48 @@ docker-compose up -d
 To update to a newer Airflow version:
 
 1. Update the image version in `values.yaml`
+
+
+## helm repo add weaviate https://weaviate.github.io/weaviate-helm
+
+
+helm upgrade --install weaviate weaviate/weaviate \
+  --namespace weaviate \
+  --values k8s/weaviate-values.yaml \
+  --wait --timeout=10m
+
+
+  kubectl -n weaviate port-forward svc/weaviate 9090:8080
+
+
+curl -X POST http://localhost:9090/v1/schema \
+  -H "Content-Type: application/json" \
+  -d '{
+    "class":"Article",
+    "vectorizer":"none",
+    "properties":[
+     {"name":"title","dataType":["text"]},
+     {"name":"content","dataType":["text"]}
+    ]
+  }'
+
+curl -X POST http://localhost:9090/v1/objects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "class":"Article",
+    "properties":{
+      "title":"Foo",
+      "content":"Bar"
+    }
+  }'
+
+
+curl -X POST http://localhost:9090/v1/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ Get { Article(nearText:{concepts:[\"Foo\"]}, limit:2) { title content } } }"}'
+
+
+http://weaviate.weaviate.svc.cluster.local:8080
+
+
+docker build -t brayanto/airflow-custom:3.0.2 .
