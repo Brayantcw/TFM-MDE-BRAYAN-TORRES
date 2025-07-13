@@ -12,18 +12,11 @@ resource "azurerm_kubernetes_cluster" "this" {
     os_disk_size_gb        = var.os_disk_size_gb
     os_disk_type           = "Managed"
     type                   = "VirtualMachineScaleSets"
-    enable_host_encryption = true # Azure platform-managed keys
   }
   identity {
     type = "SystemAssigned"
   }
   role_based_access_control_enabled = true
-  addon_profile {
-    kube_dashboard {
-      enabled = false
-    }
-  }
-
   tags = {
     Environment = "Dev"
   }
