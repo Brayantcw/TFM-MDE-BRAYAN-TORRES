@@ -25,7 +25,7 @@ variable "cluster_prefix" {
 variable "node_vm_size" {
   description = "Size of the AKS node VMs"
   type        = string
-  default     = "Standard_B2s_v2"  # Low-cost burstable SKU
+  default     = "Standard_B2s"  # Low-cost burstable SKU
 }
 
 variable "node_count" {
