@@ -16,6 +16,7 @@ variable "cluster_name" {
   default     = "aks-cluster"
 }
 
+
 variable "cluster_prefix" {
   description = "DNS prefix for AKS"
   type        = string
