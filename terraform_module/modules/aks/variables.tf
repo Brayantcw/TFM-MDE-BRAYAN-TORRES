@@ -6,3 +6,15 @@ variable "subnet_id"           { type = string }
 variable "node_vm_size"        { type = string }
 variable "node_count"          { type = number }
 variable "os_disk_size_gb"     { type = number }
+
+variable "enable_ingress" {
+  description = "Enable Application Gateway Ingress Controller"
+  type        = bool
+  default     = false
+}
+
+variable "app_gateway_subnet_id" {
+  description = "Subnet ID for Application Gateway (required if enable_ingress is true)"
+  type        = string
+  default     = null
+}

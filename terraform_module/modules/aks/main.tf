@@ -13,9 +13,18 @@ resource "azurerm_kubernetes_cluster" "this" {
     os_disk_type           = "Managed"
     type                   = "VirtualMachineScaleSets"
   }
+  
   identity {
     type = "SystemAssigned"
   }
+  
+  dynamic "ingress_application_gateway" {
+    for_each = var.enable_ingress ? [1] : []
+    content {
+      subnet_id = var.app_gateway_subnet_id
+    }
+  }
+  
   role_based_access_control_enabled = true
   tags = {
     Environment = "Dev"

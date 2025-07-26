@@ -31,7 +31,7 @@ variable "node_vm_size" {
 variable "node_count" {
   description = "Number of nodes in the default pool"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "os_disk_size_gb" {
