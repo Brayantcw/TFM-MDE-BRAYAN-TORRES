@@ -50,11 +50,6 @@ variable "ingress_enabled" {
   default     = true
 }
 
-variable "ingress_host" {
-  description = "Ingress hostname for Airflow UI"
-  type        = string
-  default     = "airflow.local"
-}
 
 variable "storage_class" {
   description = "Storage class for persistent volumes"

@@ -1,0 +1,36 @@
+resource "kubernetes_ingress_v1" "test_ing" {
+  metadata {
+    annotations = {
+      "kubernetes.io/ingress.class" = "azure/application-gateway"
+    }
+    name      = "test-app"
+    namespace = "test-apps"
+  }
+  spec {
+    rule {
+      http {
+        path {
+          path      = "/nginx/*"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "nginx-demo"
+
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [module.aks]
+}
+
+resource "time_sleep" "wait_for_test_ingress" {
+  create_duration = "2m"
+  depends_on = [kubernetes_ingress_v1.test_ing]
+}

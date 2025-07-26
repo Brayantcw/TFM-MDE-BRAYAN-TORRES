@@ -28,10 +28,20 @@ output "podinfo_status" {
   value       = helm_release.podinfo_app.status
 }
 
-output "ingress_hosts" {
-  description = "List of ingress hosts configured"
+output "ingress_paths" {
+  description = "List of ingress paths configured"
   value = [
-    var.ingress_host,
-    "podinfo.local"
+    "/nginx",
+    "/podinfo"
   ]
+}
+
+output "nginx_ingress_name" {
+  description = "Nginx ingress resource name"
+  value       = kubernetes_ingress_v1.nginx_app.metadata[0].name
+}
+
+output "podinfo_ingress_name" {
+  description = "Podinfo ingress resource name"
+  value       = kubernetes_ingress_v1.podinfo_app.metadata[0].name
 }

@@ -18,9 +18,11 @@ resource "helm_release" "nginx_app" {
       ingress = {
         enabled = var.ingress_enabled
         ingressClassName = "azure-application-gateway"
-        hostname = var.ingress_host
+        hostname = ""
+        pathType = "Prefix"
+        path = "/nginx"
         annotations = {
-          "kubernetes.io/ingress.class" = "azure-application-gateway"
+          "kubernetes.io/ingress.class" = "azure/application-gateway"
         }
       }
       
@@ -38,6 +40,38 @@ resource "helm_release" "nginx_app" {
   ]
 
   depends_on = [var.namespace]
+}
+
+resource "kubernetes_ingress_v1" "nginx_app" {
+  metadata {
+    annotations = {
+      "kubernetes.io/ingress.class" = "azure/application-gateway"
+    }
+    name      = "nginx-app-ingress"
+    namespace = var.namespace
+  }
+  spec {
+    rule {
+      http {
+        path {
+          path      = "/nginx"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = var.app_name
+
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.nginx_app]
 }
 
 resource "helm_release" "podinfo_app" {
@@ -62,17 +96,16 @@ resource "helm_release" "podinfo_app" {
         className = "azure-application-gateway"
         hosts = [
           {
-            host = "podinfo.local"
             paths = [
               {
-                path = "/"
+                path = "/podinfo"
                 pathType = "Prefix"
               }
             ]
           }
         ]
         annotations = {
-          "kubernetes.io/ingress.class" = "azure-application-gateway"
+          "kubernetes.io/ingress.class" = "azure/application-gateway"
         }
       }
       
@@ -90,4 +123,36 @@ resource "helm_release" "podinfo_app" {
   ]
 
   depends_on = [var.namespace]
+}
+
+resource "kubernetes_ingress_v1" "podinfo_app" {
+  metadata {
+    annotations = {
+      "kubernetes.io/ingress.class" = "azure/application-gateway"
+    }
+    name      = "podinfo-app-ingress"
+    namespace = var.namespace
+  }
+  spec {
+    rule {
+      http {
+        path {
+          path      = "/podinfo/*"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "podinfo"
+
+              port {
+                number = 9898
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.podinfo_app]
 }

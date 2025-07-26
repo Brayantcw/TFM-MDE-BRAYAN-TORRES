@@ -137,16 +137,10 @@ resource "helm_release" "airflow" {
         web = {
           enabled = var.ingress_enabled
           ingressClassName = "azure-application-gateway"
-          hosts = [
-            {
-              name = var.ingress_host
-              tls = {
-                enabled = false
-              }
-            }
-          ]
+          path = "/airflow"
+          pathType = "Prefix"
           annotations = {
-            "kubernetes.io/ingress.class" = "azure-application-gateway"
+            "kubernetes.io/ingress.class" = "azure/application-gateway"
           }
         }
       }
@@ -216,4 +210,36 @@ resource "helm_release" "airflow" {
     kubernetes_persistent_volume_claim.logs,
     kubernetes_persistent_volume_claim.plugins
   ]
+}
+
+resource "kubernetes_ingress_v1" "airflow_api" {
+  metadata {
+    annotations = {
+      "kubernetes.io/ingress.class" = "azure/application-gateway"
+    }
+    name      = "airflow-api-ingress"
+    namespace = kubernetes_namespace.airflow.metadata[0].name
+  }
+  spec {
+    rule {
+      http {
+        path {
+          path      = "/airflow"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "${var.release_name}-webserver"
+
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.airflow]
 }

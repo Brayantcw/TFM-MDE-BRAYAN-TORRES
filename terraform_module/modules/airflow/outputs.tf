@@ -13,9 +13,9 @@ output "release_status" {
   value       = helm_release.airflow.status
 }
 
-output "ingress_host" {
-  description = "Airflow UI ingress hostname"
-  value       = var.ingress_host
+output "ingress_path" {
+  description = "Airflow UI ingress path"
+  value       = "/airflow"
 }
 
 output "admin_credentials" {
@@ -39,4 +39,14 @@ output "persistent_volume_claims" {
     logs    = kubernetes_persistent_volume_claim.logs.metadata[0].name
     plugins = kubernetes_persistent_volume_claim.plugins.metadata[0].name
   }
+}
+
+output "ingress_name" {
+  description = "Airflow API ingress resource name"
+  value       = kubernetes_ingress_v1.airflow_api.metadata[0].name
+}
+
+output "api_service_name" {
+  description = "Airflow API server service name"
+  value       = "${var.release_name}-webserver"
 }

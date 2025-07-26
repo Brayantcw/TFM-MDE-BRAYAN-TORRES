@@ -34,8 +34,3 @@ variable "ingress_enabled" {
   default     = true
 }
 
-variable "ingress_host" {
-  description = "Ingress hostname"
-  type        = string
-  default     = "nginx-test.local"
-}

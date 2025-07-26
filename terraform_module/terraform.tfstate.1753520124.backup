@@ -1,0 +1,633 @@
+{
+  "version": 4,
+  "terraform_version": "1.5.7",
+  "serial": 159,
+  "lineage": "56e5784c-bced-e8a1-ad6c-cd94d045f598",
+  "outputs": {
+    "kube_config": {
+      "value": [
+        {
+          "client_certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZIakNDQXdhZ0F3SUJBZ0lSQU4yNmN4bUU3UW02TDh4cjNhL1ppTjB3RFFZSktvWklodmNOQVFFTEJRQXcKRFRFTE1Ba0dBMVVFQXhNQ1kyRXdIaGNOTWpVd056STJNRGMxTXpRNVdoY05NamN3TnpJMk1EZ3dNelE1V2pBdwpNUmN3RlFZRFZRUUtFdzV6ZVhOMFpXMDZiV0Z6ZEdWeWN6RVZNQk1HQTFVRUF4TU1iV0Z6ZEdWeVkyeHBaVzUwCk1JSUNJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBZzhBTUlJQ0NnS0NBZ0VBd3hFN09XbE1EUlUvWTBpMi9OTFoKOUxXNkpiTWIzYWs1UDJhcUtaV2t0NS8xYUY2cHU1WlllRW40WlNTUlkxOUJ5bG9xUmZIMDFqanJ6Z0FxYU5kKwowZ0E2emh1cmJWclAreE96UWN6TTlwQnhCZmZ0VDBSM3FEa2hTaVFWNDUwVUpVSWxSZ2xsU3Y4TzIyVGlwR1NECkZIZklDOUp1ZnJNQVh3aFlkUVM0TnNHM0FYb0x2OFM4L2xleEM0L3d2bGFLOUU0UDVnZWlKQ1A3WnMzWGtUUGoKTUZvQ3krQnFlMGF5RjdDR0ZFcG5RYWViMTNqM3Z2Zm1XY1NQcnVkMnltaDhTU3ErNENVeDFGU3lobElVSTdoKwpYNEZOZTUyZmxybDV4S0FSYk9MWmRNeE9VMjRPLzZvUDJpOXRENXRROUp6bENwaEY2OWlncU9OWEVPckFGcWVNCmh1Q2JHMkdKQ3B1OUNPYjNtN3hxRW1VZVZROFV3azhiclo4WXdCUVp0aEtnRTYwTUNrMW5LUXFvelV0Rit6MXEKZVd3WTVQY0krQTZxVFNZTmJFZGtmaVZjNUtDVkdIeHBENHFzZmZtZ2JqNitDa1NMUHVDYWkrWmwyY2ZwQWNMKwpod1R4NW9NTnJZdG1rNUpDMTFzQXZmSUdocEdpbjZaWHp5L3hBcW1XQXk5b3AzT1d0M1hRalQ5NUc2UUIxakpNCmVlNWw4S2YwZjZ5VldkdDlteXk2em5pSE1pV0w2b3lpczVuTmhmT2d2Wkl3T0tCWjJIeGFwU0ljZ2Y1MlFTZUkKOGdmd0tsdmpFVEZXSFFDalJ1YlM4ZEZQRXBjdHlpWk1TQnZaazg1NGo4dW5WclREemJIOUJVcC9EYTJ1d2dlYgpUUUN0eGZuZHFjMVB6SGQxaDN1RVNWOENBd0VBQWFOV01GUXdEZ1lEVlIwUEFRSC9CQVFEQWdXZ01CTUdBMVVkCkpRUU1NQW9HQ0NzR0FRVUZCd01DTUF3R0ExVWRFd0VCL3dRQ01BQXdId1lEVlIwakJCZ3dGb0FVYmhYd1RnTVUKR09RY0lsUGwyU3h4K29SZ05wd3dEUVlKS29aSWh2Y05BUUVMQlFBRGdnSUJBQ3hjdGFVSEJ2b0doSkNVUjdwZgp5bEZYREJZVlpwRWEvcnBGcXhrMlVZNG42NFd4alljTVNzL1IvdkJBRGxBMS9XMEl4NitKRS9GN3g3WHdWZmxCCmp1MjArVWFMR21XS2lqYjFDb1g1UEZ3M29qUVlCYkxKUFp5YU5QNVc4alRpY0Q4Unk4RStTYzV6OTlXREVSa0UKazN6N0QweHJta0JGd0hKRVdaQmoyRFllay9kZk54eTQrUWk0YnpUT1hneFIwV3NaZkVOMDdnZG1XR0tGMXBBdQp5YUdKbWpjR09TOGw4ZVpLS1pIbEdDam53dUlEOFlKVHdvc1ZiK2lqY3FjQzhQcWlnOThyOVVqQ09keFFxOXRHCnQxZUpHRWR4bi9uZTBOd0pGUGR2d2FhWm95WmVmckIxVm5CWDZINGVyMEU5UXVrNnpvd1ZsSTNsL2czTTYvNk8KUm1EZXNYQmhLTDB0emJKZTJBUlN4ZElkMi9ja1YwR2N5RDMwN2psa3A2bHJmVWRPdUJrQThncVQwY0lmUTlwegoxRVJLcDdGOWJTdmFERDNWWVZac3pneWoweFF5cmc0dkI5d3cweWJ5ZWMzSVJQbG9TN3RlV294UFBZMDFUQm9aCjdqa1VPVWFZS2RhemNuNTRvZWd0V21VK2s2bWd1c1l4K3B3NVI3Kzg1QkRqUjVSWW5ucDhudHdZZXRiS21qbnoKb2VpamNpZG1Ic0U0dDVzRTNTa1RkWUhHUWJESysvbm50OHlLR3g1Q3U1NkZxWngwZFdFNElySHFvYWNBa0lPVgpUc21qbDZpamwremxtbVVGQW1SdW1lY2JJY0RKL3Y0VUVkMC9ZNDNCRVYwaHU4TlFHblFOMjNxZFBrd2l1VUpXClllbFdwMTZHSFkzZEJvNlJOYnY3QkdoSQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+          "client_key": "LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlKS1FJQkFBS0NBZ0VBd3hFN09XbE1EUlUvWTBpMi9OTFo5TFc2SmJNYjNhazVQMmFxS1pXa3Q1LzFhRjZwCnU1WlllRW40WlNTUlkxOUJ5bG9xUmZIMDFqanJ6Z0FxYU5kKzBnQTZ6aHVyYlZyUCt4T3pRY3pNOXBCeEJmZnQKVDBSM3FEa2hTaVFWNDUwVUpVSWxSZ2xsU3Y4TzIyVGlwR1NERkhmSUM5SnVmck1BWHdoWWRRUzROc0czQVhvTAp2OFM4L2xleEM0L3d2bGFLOUU0UDVnZWlKQ1A3WnMzWGtUUGpNRm9DeStCcWUwYXlGN0NHRkVwblFhZWIxM2ozCnZ2Zm1XY1NQcnVkMnltaDhTU3ErNENVeDFGU3lobElVSTdoK1g0Rk5lNTJmbHJsNXhLQVJiT0xaZE14T1UyNE8KLzZvUDJpOXRENXRROUp6bENwaEY2OWlncU9OWEVPckFGcWVNaHVDYkcyR0pDcHU5Q09iM203eHFFbVVlVlE4VQp3azhiclo4WXdCUVp0aEtnRTYwTUNrMW5LUXFvelV0Rit6MXFlV3dZNVBjSStBNnFUU1lOYkVka2ZpVmM1S0NWCkdIeHBENHFzZmZtZ2JqNitDa1NMUHVDYWkrWmwyY2ZwQWNMK2h3VHg1b01Ocll0bWs1SkMxMXNBdmZJR2hwR2kKbjZaWHp5L3hBcW1XQXk5b3AzT1d0M1hRalQ5NUc2UUIxakpNZWU1bDhLZjBmNnlWV2R0OW15eTZ6bmlITWlXTAo2b3lpczVuTmhmT2d2Wkl3T0tCWjJIeGFwU0ljZ2Y1MlFTZUk4Z2Z3S2x2akVURldIUUNqUnViUzhkRlBFcGN0CnlpWk1TQnZaazg1NGo4dW5WclREemJIOUJVcC9EYTJ1d2dlYlRRQ3R4Zm5kcWMxUHpIZDFoM3VFU1Y4Q0F3RUEKQVFLQ0FnQUEwS0NkVUphMEpuMHN0TkFRZjRuUVgwK1hMZTR1MzMyRVZuNFFzNXhZd25JZkJvRnJiYytTQXE2egorOTlUbi9SMG5DcWYySldJclM4QW5ldjExaXZYcXNLVUlrS280dVlLVitUdE9neHA5MHRSbG5iNldHYXV4cU1nClhmZzZQYy8xaUxDY1lCaDVQWW1OV2t2eWdSTmxoTEhLcVVDYUlCdFNmWVNpc0lUMVRac1V1WCtiZDdIelBVYnoKRkFSRlJCb1lIVEtUYUF4YmtSaUVZdFhFdUlmR1FWYlFjNk5lUDBlUVpWOW0xRXkvVmhLR3ppREdDMFhrZm9SVgpqb2dBVWE0N1B6a1NIOXdPYnp6enN4dXZvYmZqMTNTbTBJOHJJRHh5TXRuTWxnN1dIa2hrc0hBRm1wNTdpUkxKCnhVMitya2E1RnpWZXhrWlF3WVA5emViZVY4TGJJU0dCNnVjNisrN3ZUQVpoRTE3VDFuWUs2Y25mV2g4MnB3RVQKQTg3dVRTdVFUNi9iZ0cwb2QzVndheUg0TUQxN3h5RGFXczA3MWVva0pHcXFIcTZpMkJzcUp0VmdSZ2ZGYjg0Lwo0M3ErNmswVVFYcUpmbGhOOVJVbDBmVWpkeWhPVUVwNGpObGZiQjZoOGdMMmJCbkoybERidDZ3bG5uRktCdHJMCmE3NmNJdzE5Y0F2d2pFQmNaak9zbjhkVEVCS2JlOThzd3hPYTY1bThxUWhwZlNPRnBrSG9LNEZzNW00UjhFNlkKcUJNa2UwWDE4cjB5MVFvazhZY1BJcEdXbm5QK3hhL1I2SHJ2UFR2Q0NuUzNMbHdIdjBoa3VwcUlIRnZDK1ZoTwp6cWsyV0hrd2Z0a1A3NkpISTUyblJnNVlvQTJ1MFhHa2ZpRmVPRFg5blJodHBqRXR3UUtDQVFFQTZJYWlPZEExClJUcUYzb203bE5ZRjgwUkc4eTc5U3YveThwSnFKV3RWNm90T0hHOWVDVXd3N1dleVMwOGR4TGFjbFdNRHprcWIKTEdVUHliK2hjOHR3bE1EZ1g1K21yV3UyWkc2bXRJcG9NbEJxVlZUakdIMW82Mi9rbDVrOVN6ZU5XV21IRkpjVgpCSjNoL01FVlVMcUNDNHpMYzNRNVVjMllUZ3BrTll3ak9OVDZ3eVB2Rkp0V1FLZW5PZmJwZ0EyOFE0SitMcTEwCkc3K0NWdmlsajV2V0JPcE0wZW1STXZIRTVXbTFyWUlCZ1FGQU5oeVl1cU5XanlmQnZnYzFVLzRibi9xb3EvVUEKMjZEaU5JK3F3b0pMcDJwMVo5Sk9SUnAramNnSHhjNHZ6bmpEUUFRYXEvVThWY0kvWlNHNmoyY3J6OVJqZk83RApJd2pibmduQTlYY21vUUtDQVFFQTFzS0YzR2tYTWU4aEZYS2t2SVRrNThXeVE0M3ZxQ003cjVYV3NsVGpWYVhPClRuR3NqOGlhYWFNMUJOWm11QWNQVVNwTk1WczRGL1htUWs0SjVRZWpONWNad3Aya2VweWJqaUd6L2w1bGo0VGEKVVRTem1BNmtaUlBJQmhhMktwTHNaV3hJNFNvNzRFMzJXNStsWHNtTXhkV0VCTEIyKzUxcERPUHVLOVFoV3Boegp0dFBXK1ZLR3NQVlZncFppNGExTUZmdTVxL3dQM0lRUkpDWFp6QXdZUXFrR2FlUXF2SFF2L1FGOG5wSW5NNzBSCmtQOWhNWkFObmx4S0N3WW01dm9UMmdqMWlEOGI5V2dkL0l5LythcytSaTltOVZUVS9reG5kKzBnaWd5NnlqRTUKR2VoSzluOGRaREg0UVcwcDRLSmtORmhxWGdXVEdNaUI0UXgxV1BWdi93S0NBUUFEOW85N1JzWXhxTjZ4UFUyNgpLcSt0UnNPaXozRTN2d2NJQldEVHhIR1JidEJsQWF6cm9hWFAxZzJlNVBsUDZnRGZOdkhRcVVyZHhkY3dEQmtYClhTZE5FY0NCUUxwWmlGVnlmc1JPblhGTE1qMnR1S1dxUEREMm1sQ2VHTm1IbDZuTUZWVmREM29uT3Yyb0RpNXIKMHRIMm1tNjVTQWpXRVJnQWRJTGl1c0c2N1Q1YzV4YmpGZ2F4VVdvelBiY2JIS0RSMGI2TzB4d0FnUklhbzJCSApBMVB4ZjREUnJ4WnZkTmx6UTRyNkt4WVZlY3o3WHg5blJ2TnB1emE5STJoUVJ5dDNYWkZVWlBlZnhxMDBVaUtKCjhDaVQ4T2VSWG05QkZFT0Y3UnZjempmWVlBeUw0Y1lHbWtadCs4S1MyYkZSVW1QWHhmbndIaTJyUWpKa0RpeUEKd29naEFvSUJBUUNBSDk5eXh2UENvN0t1TkE1YU5rTEdqK2l4YXUyTzl5NDFyQVJCc21sS2dMZ2JqcS92dkRONwpVSlppQTNPVzJRZG5XZ0Joc05VL1hrSDRUc3lTYWtNUytEK3pIdyt3NHR2ZktQWlVqSWEwNEFMTHJkQnpxRkNsCnlPNXR5NEQwMTJEWGhZblpZN1FETnlBQ083V1NYbFp3OU5obFg4NHNnUlhhVGVXYkdseW55d3BHQ2c1WUFzYysKcmE5TlVHRS8ySDdySXBuOEpFNW1OaGh2NDNFVHppZHZKWjRnOExJYWFvcnl1NzlZYjBPYUYzTnllUm5JVXZQOQpCWHhiSlZseU5jSkFNMVlnNmQzSlJFdVhqM1U5QTlBTVdWMW9naXJzYURMV2xvN3lMWFFIQ3VUUk13ZitGWW80CmE2TjdqU0FOMTNSRzBuVHJFUkpZRjg5OHIwMFhQSjZMQW9JQkFRRFdTekNRTU44cXFvUFhQeDZmbThtNHhkSmQKN21TSlkxR2tubVlLaTNJYnZNeGxMV2F6eXlnQUd3ZklRZWs0NTBJY2JMUFM5WGtjSXZ5Q1JYOU5ST0FjTHg0RQpDYVgrTlladDhVTEtTVlUwSTRmenBmNzRpZTB0OHdHU1pjSFJQdUxuV0h0TzUyVmgwbjB3OFM1WkUvc2x4K1VkCnhFWG5SRkNqbkx3bmRGQXZ6Y29lRmlNQTBoZ2tCY25QcnQ4QmdHcUVhWE5LakxpOThwRE5YOHc4NWNwTlVESVMKZXIvMjVVemZRa0hRSGZSZFU2eUV4elZVRFRybnVCVmF2ZUFXTGdpK2F5VHpSdHptNWNCY2JyS0g0c08ybStpSgpVL2pQQ1I1L01tdU1XdWxTY1VndXF5M3pSRWsySnZFZjMvd3VET1NZV2pQQkZIZWVNcEFSWXU3Zm5ScTkKLS0tLS1FTkQgUlNBIFBSSVZBVEUgS0VZLS0tLS0K",
+          "cluster_ca_certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUU2VENDQXRHZ0F3SUJBZ0lSQUlYL0kxUmkxeFlkN2hwV245ZFZnRUV3RFFZSktvWklodmNOQVFFTEJRQXcKRFRFTE1Ba0dBMVVFQXhNQ1kyRXdJQmNOTWpVd056STJNRGMxTXpRNVdoZ1BNakExTlRBM01qWXdPREF6TkRsYQpNQTB4Q3pBSkJnTlZCQU1UQW1OaE1JSUNJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBZzhBTUlJQ0NnS0NBZ0VBCnNyajhhbjdHYlpmRm5BOVNxSHZMb0lGTHBVeGlVOW81eWJZTWVLSEVpR1hZSSszY3J0YmtvT3FGYXZ5OFpEUlUKdWZmNUtjTUhWOG81bjBUM1ZPdWZMdGJFK1Y1YUFlUWtjYTRJS2ErSDlMWWE0U3ZPeURWUktOWTBHWnlMTGsyego1dUIvWmVnRzVHZnFBZGdXVk9zWUo4cndTVWR6Z1dhNlNQczE3K2NlTHdNZHBzWEp5dXF3Ym1BRkh5OVdjUmpNCkJxNy9uWmUyWnRObml6TUZtM1VTYmVwc0VkMEM1b21UdHEwV2twU0RlSDJhMm0vNm5TcGxibFA1UG0rcEs5Zk0KekJaUWx6ZllyVHo1U2JyazlrUmV3TC9LNFZ6Myt0R01zcElFbEVqUERxUnRGTWVVVEJ4TWdya3VCWkpEMmhoNwpOWmljK0xQU3JGdy92NDRPWjBPSmRDMkY1ZUx3d0ZlOGp3M2gyQUw0OGNjNExsQlZlVXM0S2wxcWo1aEZFTkRiCjE2aGUwR0JOcXEwaVNHeEVORFdxNkJpTklrT2k2ZGFHRExFcmRpZTc5WHlzR0JWMXpjQVVDS0d5YUZJWGQrZWQKa29TMWxCdlVzRW9rT3d1UTY3dUpjbUx4MDF6NTVhdkdzUFRuQnJWb0xWU0gwRmYyTXRDMkR6bGRWN3ZET0NmcwpYWEhNS25BbWpybXd1a0R2NDF1VlJ5ZXRVL3dJbFhvOEk4RmlRclpqWmFibkE5b1Nsckk4SjJoLzNndS8rR2oxCldXTXFlbjRMQW1INXhZUXVwN1VXUkN3QVdSVytlVnYvWTlzSHZaN0RHYkg3M0ltSDl0VkVaK3c3WTY1cE5RMS8KbjFHMVNZUDB5NUFOcWxMQjY5bDU1UFYxRVFuUStYcjFtVDJiNEQrQWljRUNBd0VBQWFOQ01FQXdEZ1lEVlIwUApBUUgvQkFRREFnS2tNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdIUVlEVlIwT0JCWUVGRzRWOEU0REZCamtIQ0pUCjVka3NjZnFFWURhY01BMEdDU3FHU0liM0RRRUJDd1VBQTRJQ0FRQTdCcmZUZVYyWWZiQnZoWEVRbWUvODlKcDUKbUxGU3BRcDM1TlNZVW9SZFJ5QXpKSHowSisrMEtpVjdqMkxnSDR5MG1scGZVQXJpcFc0Qmh4UEFxSUxUSVVrWAoxdGVHNGc1Zk5QV01ja1hyRm9wVmNSZm9qeDdBeGtKdlhCYlJUL1dOUmUwZlV2VUJ6WU5UWmxGS25RenlpdlJyCmlQWWU2ajJhaWU3alhkd1hWZVQ4ZExmdXIrMmtpbk9hbXJGZHVUU3p3OUN2OUZKM3ducXpMamlyQ0JUS0hBd1cKdmNXRTdaVDM0cElnRkhXZklKYjF2bUZxbDd5NGlHaVBBdVNjcFp1Rlk4clE3ZTJieE1TVk80OElkaHZvOHQyRAptakVld0FLMFU5RzhkWU9DZSsvSTBQZXZJWEN1UnJ5ZHA1eCtwSWlEcllHK1ZxejdwS3hMU1VreTZ1aytuVVZxCnBiRU5DUTduc3huY3NZbjNtKzNuVWd0dEhMOWdPazBCOFNaMi8ybWRlallsRnN4dDFxNTFlbXNQdzBsQ051OTYKZ1FoS0ZXRlJ0L3pLd3NBblkwM2ZTS3Y2MFp3YXRSNUtDOUIyd1VHYlJlR2dWWmlOdm1mZHFTcHRTL0t6eFNzYwpQdWpjMkxjajdXbk1sVkZockNleWZmbVkzekt0eW10bG5pOFdKQUhiQ3E5TGhycnY5RkJEenpQVURuLzJGQkIxCnRJeFM4VHFzdDAra2ZLUzZiS1h1MU9DK2tPdlZPU2tJMzZWcTBZWDFueHV0OXBuaXp3bkVBRHBhN2cvZS94UGEKSXNRY3RCeW9WZW9YODZoTGNhWStuUkE5U29wVFE3OU9ZS0dHVjNReXdWZDZOQVRsVGhDNlVSVDBXU0RuMUdubQp4eHBzS002cGZKZEZZK1liSEE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+          "host": "https://aksdns-uzxmrrt2.hcp.eastus.azmk8s.io:443",
+          "password": "3bkcks6974rvhfitvuqqta4n0fdvex0dp2b60zanek3du3l14qe5sk0qyehijvo9qqtbrdxuk1kzzbdsyzyxd71rhk7srklmguy79iv696pzc2tw7zl6u3gxpxp9fuvt",
+          "username": "clusterUser_tfm-brayanto_aks-cluster"
+        }
+      ],
+      "type": [
+        "list",
+        [
+          "object",
+          {
+            "client_certificate": "string",
+            "client_key": "string",
+            "cluster_ca_certificate": "string",
+            "host": "string",
+            "password": "string",
+            "username": "string"
+          }
+        ]
+      ],
+      "sensitive": true
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "azurerm_client_config",
+      "name": "current",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "client_id": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+            "id": "Y2xpZW50Q29uZmlncy9jbGllbnRJZD0wNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDY7b2JqZWN0SWQ9YmQ5YTFmYzktN2E1YS00MzY3LTkwNDItYWUxNjcwMDBlM2M4O3N1YnNjcmlwdGlvbklkPTVkNDNmZGZhLWZjYmEtNGZlMS04ZWUyLTJhNTAzYzMzODA2Mjt0ZW5hbnRJZD0yYjA3OWRjNy1lMmVhLTQ1YmMtOTE4Mi0wZmRlMTRiNTQ5YjE=",
+            "object_id": "bd9a1fc9-7a5a-4367-9042-ae167000e3c8",
+            "subscription_id": "5d43fdfa-fcba-4fe1-8ee2-2a503c338062",
+            "tenant_id": "2b079dc7-e2ea-45bc-9182-0fde14b549b1",
+            "timeouts": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "azurerm_resource_group",
+      "name": "rg",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "/subscriptions/5d43fdfa-fcba-4fe1-8ee2-2a503c338062/resourceGroups/tfm-brayanto",
+            "location": "eastus",
+            "managed_by": "",
+            "name": "tfm-brayanto",
+            "tags": {},
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo1NDAwMDAwMDAwMDAwLCJkZWxldGUiOjU0MDAwMDAwMDAwMDAsInJlYWQiOjMwMDAwMDAwMDAwMCwidXBkYXRlIjo1NDAwMDAwMDAwMDAwfX0="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "azurerm_subnet",
+      "name": "aks_subnet",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "address_prefixes": [
+              "10.52.0.0/24"
+            ],
+            "default_outbound_access_enabled": true,
+            "delegation": [],
+            "id": "/subscriptions/5d43fdfa-fcba-4fe1-8ee2-2a503c338062/resourceGroups/tfm-brayanto/providers/Microsoft.Network/virtualNetworks/68bf6ea743f3c35c-vn/subnets/68bf6ea743f3c35c-sn",
+            "name": "68bf6ea743f3c35c-sn",
+            "private_endpoint_network_policies": "Disabled",
+            "private_link_service_network_policies_enabled": true,
+            "resource_group_name": "tfm-brayanto",
+            "service_endpoint_policy_ids": [],
+            "service_endpoints": [],
+            "timeouts": null,
+            "virtual_network_name": "68bf6ea743f3c35c-vn"
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAwLCJkZWxldGUiOjE4MDAwMDAwMDAwMDAsInJlYWQiOjMwMDAwMDAwMDAwMCwidXBkYXRlIjoxODAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_virtual_network.aks_vnet",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "azurerm_subnet",
+      "name": "app_gateway_subnet",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "address_prefixes": [
+              "10.52.1.0/24"
+            ],
+            "default_outbound_access_enabled": true,
+            "delegation": [],
+            "id": "/subscriptions/5d43fdfa-fcba-4fe1-8ee2-2a503c338062/resourceGroups/tfm-brayanto/providers/Microsoft.Network/virtualNetworks/68bf6ea743f3c35c-vn/subnets/68bf6ea743f3c35c-appgw-sn",
+            "name": "68bf6ea743f3c35c-appgw-sn",
+            "private_endpoint_network_policies": "Disabled",
+            "private_link_service_network_policies_enabled": true,
+            "resource_group_name": "tfm-brayanto",
+            "service_endpoint_policy_ids": [],
+            "service_endpoints": [],
+            "timeouts": null,
+            "virtual_network_name": "68bf6ea743f3c35c-vn"
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAwLCJkZWxldGUiOjE4MDAwMDAwMDAwMDAsInJlYWQiOjMwMDAwMDAwMDAwMCwidXBkYXRlIjoxODAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_virtual_network.aks_vnet",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "azurerm_virtual_network",
+      "name": "aks_vnet",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "address_space": [
+              "10.52.0.0/16"
+            ],
+            "bgp_community": "",
+            "ddos_protection_plan": [],
+            "dns_servers": [],
+            "edge_zone": "",
+            "encryption": [],
+            "flow_timeout_in_minutes": 0,
+            "guid": "cdbe6393-7dae-4fb8-b0c4-68f7c89855b9",
+            "id": "/subscriptions/5d43fdfa-fcba-4fe1-8ee2-2a503c338062/resourceGroups/tfm-brayanto/providers/Microsoft.Network/virtualNetworks/68bf6ea743f3c35c-vn",
+            "ip_address_pool": [],
+            "location": "eastus",
+            "name": "68bf6ea743f3c35c-vn",
+            "private_endpoint_vnet_policies": "Disabled",
+            "resource_group_name": "tfm-brayanto",
+            "subnet": [
+              {
+                "address_prefixes": [
+                  "10.52.0.0/24"
+                ],
+                "default_outbound_access_enabled": true,
+                "delegation": [],
+                "id": "/subscriptions/5d43fdfa-fcba-4fe1-8ee2-2a503c338062/resourceGroups/tfm-brayanto/providers/Microsoft.Network/virtualNetworks/68bf6ea743f3c35c-vn/subnets/68bf6ea743f3c35c-sn",
+                "name": "68bf6ea743f3c35c-sn",
+                "private_endpoint_network_policies": "Disabled",
+                "private_link_service_network_policies_enabled": true,
+                "route_table_id": "",
+                "security_group": "",
+                "service_endpoint_policy_ids": [],
+                "service_endpoints": []
+              },
+              {
+                "address_prefixes": [
+                  "10.52.1.0/24"
+                ],
+                "default_outbound_access_enabled": true,
+                "delegation": [],
+                "id": "/subscriptions/5d43fdfa-fcba-4fe1-8ee2-2a503c338062/resourceGroups/tfm-brayanto/providers/Microsoft.Network/virtualNetworks/68bf6ea743f3c35c-vn/subnets/68bf6ea743f3c35c-appgw-sn",
+                "name": "68bf6ea743f3c35c-appgw-sn",
+                "private_endpoint_network_policies": "Disabled",
+                "private_link_service_network_policies_enabled": true,
+                "route_table_id": "",
+                "security_group": "",
+                "service_endpoint_policy_ids": [],
+                "service_endpoints": []
+              }
+            ],
+            "tags": {},
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAwLCJkZWxldGUiOjE4MDAwMDAwMDAwMDAsInJlYWQiOjMwMDAwMDAwMDAwMCwidXBkYXRlIjoxODAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "random_id",
+      "name": "prefix",
+      "provider": "provider[\"registry.terraform.io/hashicorp/random\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "b64_std": "aL9up0Pzw1w=",
+            "b64_url": "aL9up0Pzw1w",
+            "byte_length": 8,
+            "dec": "7547873165174883164",
+            "hex": "68bf6ea743f3c35c",
+            "id": "aL9up0Pzw1w",
+            "keepers": null,
+            "prefix": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "module": "module.airflow",
+      "mode": "managed",
+      "type": "helm_release",
+      "name": "airflow",
+      "provider": "provider[\"registry.terraform.io/hashicorp/helm\"]",
+      "instances": [
+        {
+          "schema_version": 2,
+          "attributes": {
+            "atomic": false,
+            "chart": "airflow",
+            "cleanup_on_fail": false,
+            "create_namespace": false,
+            "dependency_update": false,
+            "description": null,
+            "devel": null,
+            "disable_crd_hooks": false,
+            "disable_openapi_validation": false,
+            "disable_webhooks": false,
+            "force_update": false,
+            "id": "airflow",
+            "keyring": null,
+            "lint": false,
+            "manifest": null,
+            "max_history": 0,
+            "metadata": {
+              "app_version": "3.0.2",
+              "chart": "airflow",
+              "first_deployed": 1753517306,
+              "last_deployed": 1753517306,
+              "name": "airflow",
+              "namespace": "airflow",
+              "notes": "\n\n\nThank you for installing Apache Airflow 3.0.2!\n\nYour release is named airflow.\nYou can now access your service(s) by following defined Ingress urls:\n\nDEPRECATION WARNING:\n   `ingress.web.tls` has been renamed to `ingress.web.hosts[*].tls` and can be set per host.\n   Please change your values as support for the old name will be dropped in a future release.\n\nDEPRECATION WARNING:\n   `ingress.flower.tls` has been renamed to `ingress.flower.hosts[*].tls` and can be set per host.\n   Please change your values as support for the old name will be dropped in a future release.\n\nDEPRECATION WARNING:\n   `ingress.enabled` has been deprecated. There are now separate flags to control the webserver and\n   flower individually, ``ingress.web.enabled`` and ``ingress.flower.enabled``.\n   Please change your values as support for the old name will be dropped in a future release.\nAirflow Webserver:\n      http://airflow.local//\nDefault Webserver (Airflow UI) Login credentials:\n    username: admin\n    password: admin\nDefault Postgres connection credentials:\n    username: postgres\n    password: postgres\n    port: 5432\n\nYou can get Fernet Key value by running the following:\n\n    echo Fernet Key: $(kubectl get secret --namespace airflow airflow-fernet-key -o jsonpath=\"{.data.fernet-key}\" | base64 --decode)\n\n###########################################################\n#  WARNING: You should set a static webserver secret key  #\n###########################################################\n\nYou are using a dynamically generated webserver secret key, which can lead to\nunnecessary restarts of your Airflow components.\n\nInformation on how to set a static webserver secret key can be found here:\nhttps://airflow.apache.org/docs/helm-chart/stable/production-guide.html#webserver-secret-key\n\nCHART NAME: postgresql\nCHART VERSION: 13.2.24\nAPP VERSION: 16.1.0\n\n** Please be patient while the chart is being deployed **\n\nPostgreSQL can be accessed via port 5432 on the following DNS names from within your cluster:\n\n    airflow-postgresql.airflow.svc.cluster.local - Read/Write connection\n\nTo get the password for \"postgres\" run:\n\n    export POSTGRES_ADMIN_PASSWORD=$(kubectl get secret --namespace airflow airflow-postgresql -o jsonpath=\"{.data.postgres-password}\" | base64 -d)\n\nTo get the password for \"airflow\" run:\n\n    export POSTGRES_PASSWORD=$(kubectl get secret --namespace airflow airflow-postgresql -o jsonpath=\"{.data.password}\" | base64 -d)\n\nTo connect to your database run the following command:\n\n    kubectl run airflow-postgresql-client --rm --tty -i --restart='Never' --namespace airflow --image docker.io/bitnami/postgresql:16.1.0-debian-11-r15 --env=\"PGPASSWORD=$POSTGRES_PASSWORD\" \\\n      --command -- psql --host airflow-postgresql -U airflow -d airflow -p 5432\n\n    \u003e NOTE: If you access the container using bash, make sure that you execute \"/opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash\" in order to avoid the error \"psql: local user with ID 1001} does not exist\"\n\nTo connect to your database from outside the cluster execute the following commands:\n\n    kubectl port-forward --namespace airflow svc/airflow-postgresql 5432:5432 \u0026\n    PGPASSWORD=\"$POSTGRES_PASSWORD\" psql --host 127.0.0.1 -U airflow -d airflow -p 5432\n\nWARNING: The configured password will be ignored on new installation in case when previous PostgreSQL release was deleted through the helm command. In that case, old PVC will have an old password, and setting it through helm won't take effect. Deleting persistent volumes (PVs) will solve the issue.\n",
+              "revision": 1,
+              "values": "{\"apiServer\":{\"defaultUser\":{\"email\":\"admin@example.com\",\"enabled\":true,\"password\":\"admin\",\"username\":\"admin\"}},\"createUserJob\":{\"applyCustomEnv\":false,\"useHelmHooks\":false},\"dags\":{\"persistence\":{\"enabled\":true,\"existingClaim\":\"airflow-dags\"}},\"executor\":\"LocalExecutor\",\"extraInitContainers\":[{\"args\":[\"-c\",\"pip install --no-cache-dir ipython fastembed weaviate-client --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.0.2/constraints-3.9.txt\"],\"command\":[\"/bin/bash\"],\"image\":\"apache/airflow\",\"name\":\"install-requirements\",\"volumeMounts\":[{\"mountPath\":\"/opt/airflow\",\"name\":\"airflow-home\"}]}],\"flower\":{\"enabled\":false},\"images\":{\"airflow\":{\"pullPolicy\":\"IfNotPresent\",\"repository\":\"apache/airflow\"}},\"ingress\":{\"enabled\":true,\"web\":{\"annotations\":{\"kubernetes.io/ingress.class\":\"azure-application-gateway\"},\"enabled\":true,\"hosts\":[{\"name\":\"airflow.local\",\"tls\":{\"enabled\":false}}],\"ingressClassName\":\"azure-application-gateway\"}},\"logs\":{\"persistence\":{\"enabled\":true,\"existingClaim\":\"airflow-logs\"}},\"migrateDatabaseJob\":{\"applyCustomEnv\":false,\"useHelmHooks\":false},\"plugins\":{\"persistence\":{\"enabled\":true,\"existingClaim\":\"airflow-plugins\"}},\"postgresql\":{\"auth\":{\"database\":\"airflow\",\"password\":\"airflow\",\"username\":\"airflow\"},\"enabled\":true,\"persistence\":{\"accessModes\":[\"ReadWriteOnce\"],\"enabled\":true,\"size\":\"8Gi\",\"storageClass\":\"postgresql-storage\"}},\"redis\":{\"enabled\":false},\"resources\":{\"limits\":{\"cpu\":\"1000m\",\"memory\":\"2Gi\"},\"requests\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"}}}",
+              "version": "1.18.0"
+            },
+            "name": "airflow",
+            "namespace": "airflow",
+            "pass_credentials": false,
+            "postrender": null,
+            "recreate_pods": false,
+            "render_subchart_notes": true,
+            "replace": false,
+            "repository": "https://airflow.apache.org",
+            "repository_ca_file": null,
+            "repository_cert_file": null,
+            "repository_key_file": null,
+            "repository_password": null,
+            "repository_username": null,
+            "reset_values": false,
+            "reuse_values": false,
+            "set": null,
+            "set_list": null,
+            "set_sensitive": null,
+            "set_wo": null,
+            "set_wo_revision": null,
+            "skip_crds": false,
+            "status": "deployed",
+            "timeout": 300,
+            "values": [
+              "\"apiServer\":\n  \"defaultUser\":\n    \"email\": \"admin@example.com\"\n    \"enabled\": true\n    \"password\": \"admin\"\n    \"username\": \"admin\"\n\"createUserJob\":\n  \"applyCustomEnv\": false\n  \"useHelmHooks\": false\n\"dags\":\n  \"persistence\":\n    \"enabled\": true\n    \"existingClaim\": \"airflow-dags\"\n\"executor\": \"LocalExecutor\"\n\"extraInitContainers\":\n- \"args\":\n  - \"-c\"\n  - \"pip install --no-cache-dir ipython fastembed weaviate-client --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.0.2/constraints-3.9.txt\"\n  \"command\":\n  - \"/bin/bash\"\n  \"image\": \"apache/airflow\"\n  \"name\": \"install-requirements\"\n  \"volumeMounts\":\n  - \"mountPath\": \"/opt/airflow\"\n    \"name\": \"airflow-home\"\n\"flower\":\n  \"enabled\": false\n\"images\":\n  \"airflow\":\n    \"pullPolicy\": \"IfNotPresent\"\n    \"repository\": \"apache/airflow\"\n\"ingress\":\n  \"enabled\": true\n  \"web\":\n    \"annotations\":\n      \"kubernetes.io/ingress.class\": \"azure-application-gateway\"\n    \"enabled\": true\n    \"hosts\":\n    - \"name\": \"airflow.local\"\n      \"tls\":\n        \"enabled\": false\n    \"ingressClassName\": \"azure-application-gateway\"\n\"logs\":\n  \"persistence\":\n    \"enabled\": true\n    \"existingClaim\": \"airflow-logs\"\n\"migrateDatabaseJob\":\n  \"applyCustomEnv\": false\n  \"useHelmHooks\": false\n\"plugins\":\n  \"persistence\":\n    \"enabled\": true\n    \"existingClaim\": \"airflow-plugins\"\n\"postgresql\":\n  \"auth\":\n    \"database\": \"airflow\"\n    \"password\": \"airflow\"\n    \"username\": \"airflow\"\n  \"enabled\": true\n  \"persistence\":\n    \"accessModes\":\n    - \"ReadWriteOnce\"\n    \"enabled\": true\n    \"size\": \"8Gi\"\n    \"storageClass\": \"postgresql-storage\"\n\"redis\":\n  \"enabled\": false\n\"resources\":\n  \"limits\":\n    \"cpu\": \"1000m\"\n    \"memory\": \"2Gi\"\n  \"requests\":\n    \"cpu\": \"500m\"\n    \"memory\": \"1Gi\"\n"
+            ],
+            "verify": false,
+            "version": "1.18.0",
+            "wait": true,
+            "wait_for_jobs": false
+          },
+          "sensitive_attributes": [],
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_subnet.aks_subnet",
+            "azurerm_subnet.app_gateway_subnet",
+            "azurerm_virtual_network.aks_vnet",
+            "module.airflow.kubernetes_namespace.airflow",
+            "module.airflow.kubernetes_persistent_volume_claim.dags",
+            "module.airflow.kubernetes_persistent_volume_claim.logs",
+            "module.airflow.kubernetes_persistent_volume_claim.plugins",
+            "module.airflow.kubernetes_storage_class.airflow",
+            "module.airflow.kubernetes_storage_class.postgresql",
+            "module.aks.azurerm_kubernetes_cluster.this",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.airflow",
+      "mode": "managed",
+      "type": "kubernetes_namespace",
+      "name": "airflow",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "airflow",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {},
+                "name": "airflow",
+                "resource_version": "1697",
+                "uid": "72b33799-8144-475f-9433-b25f21140804"
+              }
+            ],
+            "timeouts": null,
+            "wait_for_default_service_account": false
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_subnet.aks_subnet",
+            "azurerm_subnet.app_gateway_subnet",
+            "azurerm_virtual_network.aks_vnet",
+            "module.aks.azurerm_kubernetes_cluster.this",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.airflow",
+      "mode": "managed",
+      "type": "kubernetes_persistent_volume_claim",
+      "name": "dags",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "airflow/airflow-dags",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {},
+                "name": "airflow-dags",
+                "namespace": "airflow",
+                "resource_version": "1936",
+                "uid": "a7574920-adf4-4d8c-acdd-ce9100aa8942"
+              }
+            ],
+            "spec": [
+              {
+                "access_modes": [
+                  "ReadWriteMany"
+                ],
+                "resources": [
+                  {
+                    "limits": {},
+                    "requests": {
+                      "storage": "2Gi"
+                    }
+                  }
+                ],
+                "selector": [],
+                "storage_class_name": "airflow-storage",
+                "volume_mode": "Filesystem",
+                "volume_name": "pvc-a7574920-adf4-4d8c-acdd-ce9100aa8942"
+              }
+            ],
+            "timeouts": null,
+            "wait_until_bound": true
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_subnet.aks_subnet",
+            "azurerm_subnet.app_gateway_subnet",
+            "azurerm_virtual_network.aks_vnet",
+            "module.airflow.kubernetes_namespace.airflow",
+            "module.airflow.kubernetes_storage_class.airflow",
+            "module.aks.azurerm_kubernetes_cluster.this",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.airflow",
+      "mode": "managed",
+      "type": "kubernetes_persistent_volume_claim",
+      "name": "logs",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "airflow/airflow-logs",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {},
+                "name": "airflow-logs",
+                "namespace": "airflow",
+                "resource_version": "1945",
+                "uid": "440e686e-050c-491e-91b1-84d011c04fd9"
+              }
+            ],
+            "spec": [
+              {
+                "access_modes": [
+                  "ReadWriteMany"
+                ],
+                "resources": [
+                  {
+                    "limits": {},
+                    "requests": {
+                      "storage": "5Gi"
+                    }
+                  }
+                ],
+                "selector": [],
+                "storage_class_name": "airflow-storage",
+                "volume_mode": "Filesystem",
+                "volume_name": "pvc-440e686e-050c-491e-91b1-84d011c04fd9"
+              }
+            ],
+            "timeouts": null,
+            "wait_until_bound": true
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_subnet.aks_subnet",
+            "azurerm_subnet.app_gateway_subnet",
+            "azurerm_virtual_network.aks_vnet",
+            "module.airflow.kubernetes_namespace.airflow",
+            "module.airflow.kubernetes_storage_class.airflow",
+            "module.aks.azurerm_kubernetes_cluster.this",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.airflow",
+      "mode": "managed",
+      "type": "kubernetes_persistent_volume_claim",
+      "name": "plugins",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "airflow/airflow-plugins",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {},
+                "name": "airflow-plugins",
+                "namespace": "airflow",
+                "resource_version": "1962",
+                "uid": "a94b712e-b69d-4dd9-977b-992ed576d606"
+              }
+            ],
+            "spec": [
+              {
+                "access_modes": [
+                  "ReadWriteMany"
+                ],
+                "resources": [
+                  {
+                    "limits": {},
+                    "requests": {
+                      "storage": "1Gi"
+                    }
+                  }
+                ],
+                "selector": [],
+                "storage_class_name": "airflow-storage",
+                "volume_mode": "Filesystem",
+                "volume_name": "pvc-a94b712e-b69d-4dd9-977b-992ed576d606"
+              }
+            ],
+            "timeouts": null,
+            "wait_until_bound": true
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_subnet.aks_subnet",
+            "azurerm_subnet.app_gateway_subnet",
+            "azurerm_virtual_network.aks_vnet",
+            "module.airflow.kubernetes_namespace.airflow",
+            "module.airflow.kubernetes_storage_class.airflow",
+            "module.aks.azurerm_kubernetes_cluster.this",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.airflow",
+      "mode": "managed",
+      "type": "kubernetes_storage_class",
+      "name": "airflow",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allow_volume_expansion": true,
+            "allowed_topologies": [],
+            "id": "airflow-storage",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {},
+                "name": "airflow-storage",
+                "resource_version": "1698",
+                "uid": "8bfc2683-5d8d-4f88-aed8-3f2c299edca6"
+              }
+            ],
+            "mount_options": [],
+            "parameters": {
+              "skuName": "Standard_LRS"
+            },
+            "reclaim_policy": "Retain",
+            "storage_provisioner": "file.csi.azure.com",
+            "volume_binding_mode": "Immediate"
+          },
+          "sensitive_attributes": [],
+          "private": "bnVsbA==",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_subnet.aks_subnet",
+            "azurerm_subnet.app_gateway_subnet",
+            "azurerm_virtual_network.aks_vnet",
+            "module.aks.azurerm_kubernetes_cluster.this",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.airflow",
+      "mode": "managed",
+      "type": "kubernetes_storage_class",
+      "name": "postgresql",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allow_volume_expansion": true,
+            "allowed_topologies": [],
+            "id": "postgresql-storage",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {},
+                "name": "postgresql-storage",
+                "resource_version": "1696",
+                "uid": "10d2ad6d-0984-43cd-8dad-f310937f36ce"
+              }
+            ],
+            "mount_options": [],
+            "parameters": {
+              "skuName": "Standard_LRS"
+            },
+            "reclaim_policy": "Retain",
+            "storage_provisioner": "disk.csi.azure.com",
+            "volume_binding_mode": "Immediate"
+          },
+          "sensitive_attributes": [],
+          "private": "bnVsbA==",
+          "dependencies": [
+            "azurerm_resource_group.rg",
+            "azurerm_subnet.aks_subnet",
+            "azurerm_subnet.app_gateway_subnet",
+            "azurerm_virtual_network.aks_vnet",
+            "module.aks.azurerm_kubernetes_cluster.this",
+            "random_id.prefix"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

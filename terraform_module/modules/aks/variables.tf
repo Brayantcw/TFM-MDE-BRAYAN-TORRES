@@ -13,8 +13,8 @@ variable "enable_ingress" {
   default     = false
 }
 
-variable "app_gateway_subnet_id" {
-  description = "Subnet ID for Application Gateway (required if enable_ingress is true)"
+variable "app_gateway_id" {
+  description = "Application Gateway ID for AGIC (required if enable_ingress is true)"
   type        = string
   default     = null
 }

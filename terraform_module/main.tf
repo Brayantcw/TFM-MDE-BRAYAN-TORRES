@@ -22,18 +22,18 @@ provider "azurerm" {
 
 provider "helm" {
   kubernetes = {
-    host                   = module.aks.kube_config[0].host
-    client_certificate     = base64decode(module.aks.kube_config[0].client_certificate)
-    client_key             = base64decode(module.aks.kube_config[0].client_key)
-    cluster_ca_certificate = base64decode(module.aks.kube_config[0].cluster_ca_certificate)
+    host                   = try(module.aks.kube_config[0].host, "")
+    client_certificate     = try(base64decode(module.aks.kube_config[0].client_certificate), "")
+    client_key             = try(base64decode(module.aks.kube_config[0].client_key), "")
+    cluster_ca_certificate = try(base64decode(module.aks.kube_config[0].cluster_ca_certificate), "")
   }
 }
 
 provider "kubernetes" {
-  host                   = module.aks.kube_config[0].host
-  client_certificate     = base64decode(module.aks.kube_config[0].client_certificate)
-  client_key             = base64decode(module.aks.kube_config[0].client_key)
-  cluster_ca_certificate = base64decode(module.aks.kube_config[0].cluster_ca_certificate)
+  host                   = try(module.aks.kube_config[0].host, "")
+  client_certificate     = try(base64decode(module.aks.kube_config[0].client_certificate), "")
+  client_key             = try(base64decode(module.aks.kube_config[0].client_key), "")
+  cluster_ca_certificate = try(base64decode(module.aks.kube_config[0].cluster_ca_certificate), "")
 }
 
 data "azurerm_client_config" "current" {}
@@ -69,6 +69,84 @@ resource "azurerm_subnet" "app_gateway_subnet" {
   virtual_network_name = azurerm_virtual_network.aks_vnet.name
 }
 
+resource "azurerm_public_ip" "app_gateway_pip" {
+  allocation_method   = "Static"
+  location            = azurerm_resource_group.rg.location
+  name                = "${random_id.prefix.hex}-appgw-pip"
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "Standard"
+  domain_name_label   = "appgw-${lower(random_id.prefix.hex)}"
+}
+
+resource "azurerm_application_gateway" "app_gateway" {
+  location            = azurerm_resource_group.rg.location
+  name                = "${random_id.prefix.hex}-appgw"
+  resource_group_name = azurerm_resource_group.rg.name
+
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
+  }
+
+  gateway_ip_configuration {
+    name      = "appGatewayIpConfig"
+    subnet_id = azurerm_subnet.app_gateway_subnet.id
+  }
+
+  frontend_port {
+    name = "port_80"
+    port = 80
+  }
+
+  frontend_ip_configuration {
+    name                 = "appGwPublicFrontendIp"
+    public_ip_address_id = azurerm_public_ip.app_gateway_pip.id
+  }
+
+  backend_address_pool {
+    name = "defaultaddresspool"
+  }
+
+  backend_http_settings {
+    name                  = "defaulthttpsetting"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 60
+  }
+
+  http_listener {
+    name                           = "defaulthttplistener"
+    frontend_ip_configuration_name = "appGwPublicFrontendIp"
+    frontend_port_name             = "port_80"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name                       = "defaultroutingrule"
+    rule_type                  = "Basic"
+    http_listener_name         = "defaulthttplistener"
+    backend_address_pool_name  = "defaultaddresspool"
+    backend_http_settings_name = "defaulthttpsetting"
+    priority                   = 1
+  }
+
+  lifecycle {
+    ignore_changes = [
+      backend_address_pool,
+      backend_http_settings,
+      http_listener,
+      probe,
+      request_routing_rule,
+      url_path_map,
+      ssl_certificate,
+      redirect_configuration,
+      autoscale_configuration
+    ]
+  }
+}
+
 module "aks" {
   source              = "./modules/aks"
   resource_group_name = azurerm_resource_group.rg.name
@@ -81,8 +159,10 @@ module "aks" {
   os_disk_size_gb     = var.os_disk_size_gb
   
   # Ingress configuration
-  enable_ingress           = false
-  app_gateway_subnet_id    = azurerm_subnet.app_gateway_subnet.id
+  enable_ingress           = true
+  app_gateway_id           = azurerm_application_gateway.app_gateway.id
+  
+  depends_on = [azurerm_application_gateway.app_gateway]
 }
 
 module "helm_apps" {
@@ -90,8 +170,7 @@ module "helm_apps" {
   
   namespace        = "test-apps"
   app_name         = "nginx-demo"
-  ingress_enabled  = true
-  ingress_host     = "nginx-demo.local"
+  ingress_enabled  = false
   replicas         = 2
   
   depends_on = [module.aks]
@@ -116,8 +195,7 @@ module "airflow" {
     email    = "admin@example.com"
   }
   
-  ingress_enabled = true
-  ingress_host    = "airflow.local"
+  ingress_enabled = false
   
   dags_storage_size    = "2Gi"
   logs_storage_size    = "5Gi"
