@@ -10,22 +10,22 @@ resource "helm_release" "nginx_app" {
   values = [
     yamlencode({
       replicaCount = var.replicas
-      
+
       service = {
         type = var.service_type
       }
-      
+
       ingress = {
-        enabled = var.ingress_enabled
+        enabled          = var.ingress_enabled
         ingressClassName = "azure-application-gateway"
-        hostname = ""
-        pathType = "Prefix"
-        path = "/nginx"
+        hostname         = ""
+        pathType         = "Prefix"
+        path             = "/nginx"
         annotations = {
           "kubernetes.io/ingress.class" = "azure/application-gateway"
         }
       }
-      
+
       resources = {
         limits = {
           cpu    = "500m"
@@ -86,19 +86,19 @@ resource "helm_release" "podinfo_app" {
   values = [
     yamlencode({
       replicaCount = 1
-      
+
       service = {
         type = "ClusterIP"
       }
-      
+
       ingress = {
-        enabled = true
+        enabled   = true
         className = "azure-application-gateway"
         hosts = [
           {
             paths = [
               {
-                path = "/podinfo"
+                path     = "/podinfo"
                 pathType = "Prefix"
               }
             ]
@@ -108,7 +108,7 @@ resource "helm_release" "podinfo_app" {
           "kubernetes.io/ingress.class" = "azure/application-gateway"
         }
       }
-      
+
       resources = {
         limits = {
           cpu    = "100m"

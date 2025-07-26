@@ -5,31 +5,31 @@ resource "azurerm_kubernetes_cluster" "this" {
   dns_prefix          = var.dns_prefix
 
   default_node_pool {
-    name                   = "default"
-    vm_size                = var.node_vm_size
-    node_count             = var.node_count
-    vnet_subnet_id         = var.subnet_id
-    os_disk_size_gb        = var.os_disk_size_gb
-    os_disk_type           = "Managed"
-    type                   = "VirtualMachineScaleSets"
+    name            = "default"
+    vm_size         = var.node_vm_size
+    node_count      = var.node_count
+    vnet_subnet_id  = var.subnet_id
+    os_disk_size_gb = var.os_disk_size_gb
+    os_disk_type    = "Managed"
+    type            = "VirtualMachineScaleSets"
   }
-  
+
   network_profile {
     network_plugin = "azure"
     network_policy = "azure"
   }
-  
+
   identity {
     type = "SystemAssigned"
   }
-  
+
   dynamic "ingress_application_gateway" {
     for_each = var.enable_ingress ? [1] : []
     content {
       gateway_id = var.app_gateway_id
     }
   }
-  
+
   role_based_access_control_enabled = true
   tags = {
     Environment = "Dev"

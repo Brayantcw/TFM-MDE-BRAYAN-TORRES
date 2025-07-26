@@ -157,49 +157,49 @@ module "aks" {
   node_vm_size        = var.node_vm_size
   node_count          = var.node_count
   os_disk_size_gb     = var.os_disk_size_gb
-  
+
   # Ingress configuration
-  enable_ingress           = true
-  app_gateway_id           = azurerm_application_gateway.app_gateway.id
-  
+  enable_ingress = true
+  app_gateway_id = azurerm_application_gateway.app_gateway.id
+
   depends_on = [azurerm_application_gateway.app_gateway]
 }
 
 module "helm_apps" {
   source = "./modules/helm-app"
-  
-  namespace        = "test-apps"
-  app_name         = "nginx-demo"
-  ingress_enabled  = false
-  replicas         = 2
-  
+
+  namespace       = "test-apps"
+  app_name        = "nginx-demo"
+  ingress_enabled = false
+  replicas        = 2
+
   depends_on = [module.aks]
 }
 
 module "airflow" {
   source = "./modules/airflow"
-  
-  namespace      = "airflow"
-  release_name   = "airflow"
-  chart_version  = "1.18.0"
-  
+
+  namespace     = "airflow"
+  release_name  = "airflow"
+  chart_version = "1.18.0"
+
   custom_image = {
     repository = "brayanto/airflow-custom"
     tag        = "3.0.2"
     pullPolicy = "IfNotPresent"
   }
-  
+
   admin_user = {
     username = "admin"
     password = "admin"
     email    = "admin@example.com"
   }
-  
+
   ingress_enabled = false
-  
+
   dags_storage_size    = "2Gi"
   logs_storage_size    = "5Gi"
   plugins_storage_size = "1Gi"
-  
+
   depends_on = [module.aks]
 }

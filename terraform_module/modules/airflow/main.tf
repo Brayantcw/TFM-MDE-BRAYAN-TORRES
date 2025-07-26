@@ -95,8 +95,8 @@ resource "helm_release" "airflow" {
 
       extraInitContainers = [
         {
-          name  = "install-requirements"
-          image = "apache/airflow"
+          name    = "install-requirements"
+          image   = "apache/airflow"
           command = ["/bin/bash"]
           args = [
             "-c",
@@ -114,12 +114,12 @@ resource "helm_release" "airflow" {
       executor = "LocalExecutor"
 
       createUserJob = {
-        useHelmHooks = false
+        useHelmHooks   = false
         applyCustomEnv = false
       }
 
       migrateDatabaseJob = {
-        useHelmHooks = false
+        useHelmHooks   = false
         applyCustomEnv = false
       }
 
@@ -135,10 +135,10 @@ resource "helm_release" "airflow" {
       ingress = {
         enabled = var.ingress_enabled
         web = {
-          enabled = var.ingress_enabled
+          enabled          = var.ingress_enabled
           ingressClassName = "azure-application-gateway"
-          path = "/airflow"
-          pathType = "Prefix"
+          path             = "/airflow"
+          pathType         = "Prefix"
           annotations = {
             "kubernetes.io/ingress.class" = "azure/application-gateway"
           }

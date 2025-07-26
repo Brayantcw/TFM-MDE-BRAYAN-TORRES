@@ -23,10 +23,10 @@ on:
 
 env:
   TF_VERSION: '1.12.2'
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   terraform-plan:
@@ -39,6 +39,13 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -69,7 +76,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
     needs: terraform-plan
-    environment: production
     defaults:
       run:
         working-directory: terraform_module
@@ -77,6 +83,13 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -98,7 +111,6 @@ jobs:
   terraform-destroy:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
-    environment: production
     defaults:
       run:
         working-directory: terraform_module
@@ -106,6 +118,13 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
