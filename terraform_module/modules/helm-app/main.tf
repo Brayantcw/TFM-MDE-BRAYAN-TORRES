@@ -22,7 +22,7 @@ resource "helm_release" "nginx_app" {
         pathType         = "Prefix"
         path             = "/nginx"
         annotations = {
-          "kubernetes.io/ingress.class" = "azure/application-gateway"
+          "kubernetes.io/ingress.class"                     = "azure/application-gateway"
           "appgw.ingress.kubernetes.io/backend-path-prefix" = "/"
         }
       }
@@ -75,7 +75,7 @@ resource "helm_release" "podinfo_app" {
           }
         ]
         annotations = {
-          "kubernetes.io/ingress.class" = "azure/application-gateway"
+          "kubernetes.io/ingress.class"                     = "azure/application-gateway"
           "appgw.ingress.kubernetes.io/backend-path-prefix" = "/"
         }
       }
