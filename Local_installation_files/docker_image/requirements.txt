@@ -1,0 +1,5 @@
+# requirements.txt
+ipython
+fastembed
+weaviate-client
+# (any other app‐specific libs you need)
