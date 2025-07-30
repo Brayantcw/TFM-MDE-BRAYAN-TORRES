@@ -1,10 +1,6 @@
 name: Terraform Azure Deployment
 
 on:
-  push:
-    branches: [ main, dev-* ]
-    paths:
-      - 'terraform_module/**'
   workflow_dispatch:
     inputs:
       action:
@@ -27,7 +23,7 @@ permissions:
 jobs:
   terraform-plan:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     defaults:
       run:
         working-directory: terraform_module

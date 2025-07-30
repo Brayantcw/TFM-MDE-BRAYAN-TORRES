@@ -32,7 +32,6 @@ COPY --chown=airflow:root requirements.txt /tmp/requirements.txt
 # 7. Install Python packages with constraints and cleanup
 RUN pip install \
       --no-cache-dir \
-      --user \
       -r /tmp/requirements.txt \
       --constraint "${CONSTRAINT_URL}" \
     && pip check \

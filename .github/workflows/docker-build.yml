@@ -1,10 +1,6 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches: [ main, dev-* ]
-    paths:
-      - 'Local_installation_files/docker_image/**'
   workflow_dispatch:
     inputs:
       version:
