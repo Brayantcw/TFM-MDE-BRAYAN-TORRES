@@ -24,8 +24,8 @@ variable "custom_image" {
     pullPolicy = string
   })
   default = {
-    repository = "brayanto/airflow-custom"
-    tag        = "3.0.2"
+    repository = "ghcr.io/brayantcw/airflow-custom"
+    tag        = "latest"
     pullPolicy = "IfNotPresent"
   }
 }
