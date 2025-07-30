@@ -1,4 +1,11 @@
 terraform {
+  backend "azurerm" {
+    resource_group_name  = "tfstate-rg"
+    storage_account_name = "terraformstatetfm"
+    container_name       = "tfstate"
+    key                  = "terraform.tfstate"
+  }
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -184,8 +191,8 @@ module "airflow" {
   chart_version = "1.18.0"
 
   custom_image = {
-    repository = "brayanto/airflow-custom"
-    tag        = "3.0.2"
+    repository = "ghcr.io/brayantcw/airflow-custom"
+    tag        = "latest"
     pullPolicy = "IfNotPresent"
   }
 

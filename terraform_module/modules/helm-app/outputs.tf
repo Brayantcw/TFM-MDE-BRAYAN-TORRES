@@ -37,11 +37,11 @@ output "ingress_paths" {
 }
 
 output "nginx_ingress_name" {
-  description = "Nginx ingress resource name"
-  value       = kubernetes_ingress_v1.nginx_app.metadata[0].name
+  description = "Nginx ingress resource name (managed by Helm)"
+  value       = var.ingress_enabled ? "${helm_release.nginx_app.name}-nginx" : "disabled"
 }
 
 output "podinfo_ingress_name" {
-  description = "Podinfo ingress resource name"
-  value       = kubernetes_ingress_v1.podinfo_app.metadata[0].name
+  description = "Podinfo ingress resource name (managed by Helm)"
+  value       = "podinfo"
 }
