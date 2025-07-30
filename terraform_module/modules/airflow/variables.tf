@@ -24,7 +24,7 @@ variable "custom_image" {
     pullPolicy = string
   })
   default = {
-    repository = "ghcr.io/brayantcw/airflow-custom"
+    repository = "masterbt77/airflow-custom"
     tag        = "latest"
     pullPolicy = "IfNotPresent"
   }

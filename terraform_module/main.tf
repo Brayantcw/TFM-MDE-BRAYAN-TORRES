@@ -191,7 +191,7 @@ module "airflow" {
   chart_version = "1.18.0"
 
   custom_image = {
-    repository = "ghcr.io/brayantcw/airflow-custom"
+    repository = "masterbt77/airflow-custom"
     tag        = "latest"
     pullPolicy = "IfNotPresent"
   }
