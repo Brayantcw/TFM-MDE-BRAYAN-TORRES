@@ -39,3 +39,9 @@ variable "os_disk_size_gb" {
   type        = number
   default     = 30
 }
+
+variable "deploy_validation_apps" {
+  description = "Whether to deploy validation helm apps for cluster functionality testing"
+  type        = bool
+  default     = false
+}

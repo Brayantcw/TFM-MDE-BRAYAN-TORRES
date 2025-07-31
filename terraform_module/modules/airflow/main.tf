@@ -87,29 +87,13 @@ resource "helm_release" "airflow" {
     yamlencode({
       images = {
         airflow = {
-          repository = "apache/airflow"
+          repository = "masterbt77/airflow-custom"
+          tag        = "v1.0.1"
           pullPolicy = "IfNotPresent"
         }
       }
 
 
-      extraInitContainers = [
-        {
-          name    = "install-requirements"
-          image   = "apache/airflow"
-          command = ["/bin/bash"]
-          args = [
-            "-c",
-            "pip install --no-cache-dir ipython fastembed weaviate-client --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.0.2/constraints-3.9.txt"
-          ]
-          volumeMounts = [
-            {
-              name      = "airflow-home"
-              mountPath = "/opt/airflow"
-            }
-          ]
-        }
-      ]
 
       executor = "LocalExecutor"
 
@@ -133,15 +117,9 @@ resource "helm_release" "airflow" {
       }
 
       ingress = {
-        enabled = var.ingress_enabled
+        enabled = false
         web = {
-          enabled          = var.ingress_enabled
-          ingressClassName = "azure-application-gateway"
-          path             = "/airflow"
-          pathType         = "Prefix"
-          annotations = {
-            "kubernetes.io/ingress.class" = "azure/application-gateway"
-          }
+          enabled = false
         }
       }
 
@@ -216,6 +194,7 @@ resource "kubernetes_ingress_v1" "airflow_api" {
   metadata {
     annotations = {
       "kubernetes.io/ingress.class" = "azure/application-gateway"
+       "appgw.ingress.kubernetes.io/backend-path-prefix" = "/"
     }
     name      = "airflow-api-ingress"
     namespace = kubernetes_namespace.airflow.metadata[0].name
@@ -224,15 +203,15 @@ resource "kubernetes_ingress_v1" "airflow_api" {
     rule {
       http {
         path {
-          path      = "/airflow"
+          path      = "/api/v1"
           path_type = "Prefix"
 
           backend {
             service {
-              name = "${var.release_name}-webserver"
+              name = "${var.release_name}-api"
 
               port {
-                number = 8080
+                number = 9090
               }
             }
           }
@@ -240,6 +219,5 @@ resource "kubernetes_ingress_v1" "airflow_api" {
       }
     }
   }
-
   depends_on = [helm_release.airflow]
 }

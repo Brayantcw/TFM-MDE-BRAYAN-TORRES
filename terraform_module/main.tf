@@ -173,6 +173,7 @@ module "aks" {
 }
 
 module "helm_apps" {
+  count  = var.deploy_validation_apps ? 1 : 0
   source = "./modules/helm-app"
 
   namespace       = "test-apps"
