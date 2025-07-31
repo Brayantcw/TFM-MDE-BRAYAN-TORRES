@@ -53,6 +53,7 @@ jobs:
           org.opencontainers.image.version=${{ github.event.inputs.version || 'latest' }}
 
     - name: Build and push Docker image
+      id: build
       uses: docker/build-push-action@v5
       with:
         context: ./Local_installation_files/docker_image
@@ -69,7 +70,7 @@ jobs:
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.IMAGE_NAME }}:latest
+        image-ref: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
         format: 'sarif'
         output: 'trivy-results.sarif'
 
