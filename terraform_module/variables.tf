@@ -45,3 +45,9 @@ variable "deploy_validation_apps" {
   type        = bool
   default     = false
 }
+
+variable "deploy_weaviate" {
+  description = "Whether to deploy Weaviate vector database"
+  type        = bool
+  default     = false
+}
