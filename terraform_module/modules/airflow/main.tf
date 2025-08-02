@@ -149,19 +149,15 @@ resource "helm_release" "airflow" {
           repo          = var.git_repo_url
           branch        = var.git_branch
           repoSubPath   = var.git_dags_subpath
+          revision      = "HEAD"
+          depth         = 1
           syncWait      = var.git_sync_wait
           syncTimeout   = var.git_sync_timeout
-          depth         = 1
           maxFailures   = 0
           submodules    = "recursive"
           sshSecret     = var.enable_ssh_auth && var.ssh_private_key != "" ? "airflow-git-ssh-key" : ""
           sshSecretKey  = var.enable_ssh_auth && var.ssh_private_key != "" ? "id_rsa" : ""
           sshKnownHosts = var.enable_ssh_auth && var.ssh_known_hosts != "" ? var.ssh_known_hosts : ""
-          image = {
-            repository = "registry.k8s.io/git-sync/git-sync"
-            tag        = "v3.6.9"
-            pullPolicy = "IfNotPresent"
-          }
         }
       }
 
