@@ -155,14 +155,14 @@ resource "helm_release" "airflow" {
           existingClaim = var.enable_git_sync ? null : kubernetes_persistent_volume_claim.dags.metadata[0].name
         }
         gitSync = {
-          enabled      = var.enable_ssh_auth
-          repo         = var.git_repo_url
-          branch       = var.git_branch
-          subPath      = var.git_dags_subpath
-          depth        = 1
-          maxFailures  = 0
-          sshKeySecret = var.enable_ssh_auth ? "airflow-git-ssh-key" : null
-          knownHosts   = var.enable_ssh_auth ? var.ssh_known_hosts : null
+          enabled     = var.enable_ssh_auth
+          repo        = var.git_repo_url
+          branch      = var.git_branch
+          subPath     = var.git_dags_subpath
+          depth       = 1
+          maxFailures = 0
+          sshKey      = var.enable_ssh_auth ? var.ssh_private_key : null
+          knownHosts  = var.enable_ssh_auth ? var.ssh_known_hosts : null
         }
       }
 

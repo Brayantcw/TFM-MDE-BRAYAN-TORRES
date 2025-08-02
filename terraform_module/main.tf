@@ -243,6 +243,6 @@ module "airflow" {
   # SSH authentication for private repo
   enable_ssh_auth = true
   ssh_private_key = var.ssh_private_key
-  ssh_known_hosts = "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8BUGLN7j6dDDVJtdf86LsWxB+eXi+xALV4pjO9VGQ8r8MzPHsqE7Qj/Gc="
+  ssh_known_hosts = "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
   depends_on      = [module.aks]
 }
