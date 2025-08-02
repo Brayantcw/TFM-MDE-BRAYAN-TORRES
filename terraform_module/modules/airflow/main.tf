@@ -5,6 +5,8 @@ resource "kubernetes_namespace" "airflow" {
 }
 
 resource "kubernetes_secret" "git_ssh_key" {
+  count = var.enable_ssh_auth ? 1 : 0
+  
   metadata {
     name      = "airflow-git-ssh-key"
     namespace = kubernetes_namespace.airflow.metadata[0].name
@@ -12,6 +14,19 @@ resource "kubernetes_secret" "git_ssh_key" {
   type = "Opaque"
   data = {
     gitSshKey = var.ssh_private_key
+  }
+}
+
+resource "kubernetes_secret" "git_ssh_known_hosts" {
+  count = var.enable_ssh_auth ? 1 : 0
+  
+  metadata {
+    name      = "airflow-git-known-hosts"
+    namespace = kubernetes_namespace.airflow.metadata[0].name
+  }
+  type = "Opaque"
+  data = {
+    known_hosts = var.ssh_known_hosts
   }
 }
 
@@ -140,14 +155,14 @@ resource "helm_release" "airflow" {
           existingClaim = var.enable_git_sync ? null : kubernetes_persistent_volume_claim.dags.metadata[0].name
         }
         gitSync = {
-          enabled      = var.enable_git_sync
+          enabled      = var.enable_ssh_auth
           repo         = var.git_repo_url
           branch       = var.git_branch
           subPath      = var.git_dags_subpath
           depth        = 1
           maxFailures  = 0
-          sshKeySecret = var.enable_ssh_auth && var.ssh_private_key != "" ? "airflow-git-ssh-key" : null
-          knownHosts   = var.enable_ssh_auth && var.ssh_known_hosts != "" ? var.ssh_known_hosts : null
+          sshKeySecret = var.enable_ssh_auth ? "airflow-git-ssh-key" : null
+          knownHosts   = var.enable_ssh_auth ? var.ssh_known_hosts : null
         }
       }
 
@@ -208,7 +223,8 @@ resource "helm_release" "airflow" {
     kubernetes_persistent_volume_claim.dags,
     kubernetes_persistent_volume_claim.logs,
     kubernetes_persistent_volume_claim.plugins,
-    kubernetes_secret.git_ssh_key
+    kubernetes_secret.git_ssh_key,
+    kubernetes_secret.git_ssh_known_hosts
   ]
 }
 
