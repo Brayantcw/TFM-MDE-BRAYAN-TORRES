@@ -46,7 +46,3 @@ output "ingress_name" {
   value       = kubernetes_ingress_v1.airflow_api.metadata[0].name
 }
 
-output "api_service_name" {
-  description = "Airflow API server service name"
-  value       = "${var.release_name}-webserver"
-}

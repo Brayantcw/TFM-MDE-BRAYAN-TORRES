@@ -203,7 +203,7 @@ resource "kubernetes_ingress_v1" "airflow_api" {
     rule {
       http {
         path {
-          path      = "/api/v1"
+          path      = "/"
           path_type = "Prefix"
 
           backend {
@@ -211,7 +211,7 @@ resource "kubernetes_ingress_v1" "airflow_api" {
               name = "airflow-api-server"
 
               port {
-                number = 9090
+                number = 8080
               }
             }
           }
