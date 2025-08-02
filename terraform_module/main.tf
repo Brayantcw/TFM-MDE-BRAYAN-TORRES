@@ -239,7 +239,7 @@ module "airflow" {
   git_dags_subpath = "dags"
   git_sync_wait    = 60
   git_sync_timeout = 120
-  ssh_private_key = var.github_ssh_private_key
-  ssh_known_hosts = "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8BUGLN7j6dDDVJtdf86LsWxB+eXi+xALV4pjO9VGQ8r8MzPHsqE7Qj/Gc="
-  depends_on = [module.aks]
+  ssh_private_key  = var.github_ssh_private_key
+  ssh_known_hosts  = "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8BUGLN7j6dDDVJtdf86LsWxB+eXi+xALV4pjO9VGQ8r8MzPHsqE7Qj/Gc="
+  depends_on       = [module.aks]
 }
