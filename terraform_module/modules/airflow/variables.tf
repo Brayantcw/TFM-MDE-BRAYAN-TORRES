@@ -16,19 +16,6 @@ variable "chart_version" {
   default     = "1.18.0"
 }
 
-variable "custom_image" {
-  description = "Custom Airflow Docker image"
-  type = object({
-    repository = string
-    tag        = string
-    pullPolicy = string
-  })
-  default = {
-    repository = "masterbt77/airflow-custom"
-    tag        = "latest"
-    pullPolicy = "IfNotPresent"
-  }
-}
 
 variable "admin_user" {
   description = "Airflow admin user configuration"
