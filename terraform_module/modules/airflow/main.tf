@@ -193,8 +193,8 @@ resource "helm_release" "airflow" {
 resource "kubernetes_ingress_v1" "airflow_api" {
   metadata {
     annotations = {
-      "kubernetes.io/ingress.class" = "azure/application-gateway"
-       "appgw.ingress.kubernetes.io/backend-path-prefix" = "/"
+      "kubernetes.io/ingress.class"                     = "azure/application-gateway"
+      "appgw.ingress.kubernetes.io/backend-path-prefix" = "/"
     }
     name      = "airflow-api-ingress"
     namespace = kubernetes_namespace.airflow.metadata[0].name

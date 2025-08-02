@@ -56,12 +56,12 @@ resource "helm_release" "weaviate" {
       }
 
       ingress = {
-        enabled = var.enable_ingress
+        enabled          = var.enable_ingress
         ingressClassName = var.enable_ingress ? "azure-application-gateway" : null
-        pathType = var.enable_ingress ? "Prefix" : null
-        path = var.enable_ingress ? var.ingress_path : null
+        pathType         = var.enable_ingress ? "Prefix" : null
+        path             = var.enable_ingress ? var.ingress_path : null
         annotations = var.enable_ingress ? {
-          "kubernetes.io/ingress.class" = "azure/application-gateway"
+          "kubernetes.io/ingress.class"                     = "azure/application-gateway"
           "appgw.ingress.kubernetes.io/backend-path-prefix" = "/"
         } : {}
       }

@@ -10,7 +10,7 @@ output "release_name" {
 
 output "service_name" {
   description = "Kubernetes service name for Weaviate"
-  value       = "${var.release_name}"
+  value       = var.release_name
 }
 
 output "http_endpoint" {

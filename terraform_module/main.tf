@@ -185,14 +185,14 @@ module "helm_apps" {
 }
 
 module "weaviate" {
-  count  = var.deploy_weaviate ? 1 : 0
-  source = "./modules/weaviate"
+  count         = var.deploy_weaviate ? 1 : 0
+  source        = "./modules/weaviate"
   namespace     = "weaviate"
   release_name  = "weaviate"
   chart_version = "17.4.5"
-  image_tag    = "1.31.5"
-  pull_policy  = "IfNotPresent"
-  storage_size = "2Gi"
+  image_tag     = "1.31.5"
+  pull_policy   = "IfNotPresent"
+  storage_size  = "2Gi"
   resource_limits = {
     cpu    = "1"
     memory = "2Gi"
@@ -202,7 +202,7 @@ module "weaviate" {
     memory = "1Gi"
   }
   enable_anonymous_access = true
-  enable_ingress         = false
+  enable_ingress          = false
 
   depends_on = [module.aks]
 }
