@@ -149,7 +149,7 @@ resource "helm_release" "airflow" {
           branch       = var.git_branch
           subPath      = var.git_dags_subpath
           depth        = 1
-          maxFailures  = 0 
+          maxFailures  = 0
           sshKeySecret = var.enable_ssh_auth && var.ssh_private_key != "" ? "airflow-git-ssh-key" : null
           knownHosts   = var.enable_ssh_auth && var.ssh_known_hosts != "" ? var.ssh_known_hosts : null
         }
@@ -211,7 +211,8 @@ resource "helm_release" "airflow" {
     kubernetes_storage_class.postgresql,
     kubernetes_persistent_volume_claim.dags,
     kubernetes_persistent_volume_claim.logs,
-    kubernetes_persistent_volume_claim.plugins
+    kubernetes_persistent_volume_claim.plugins,
+    kubernetes_secret.git_ssh_key
   ]
 }
 
