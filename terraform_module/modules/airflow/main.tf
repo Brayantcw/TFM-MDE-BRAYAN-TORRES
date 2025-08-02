@@ -208,7 +208,7 @@ resource "kubernetes_ingress_v1" "airflow_api" {
 
           backend {
             service {
-              name = "${var.release_name}-api"
+              name = "airflow-api-server"
 
               port {
                 number = 9090
