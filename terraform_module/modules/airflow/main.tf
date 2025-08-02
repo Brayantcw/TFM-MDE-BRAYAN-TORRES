@@ -6,7 +6,7 @@ resource "kubernetes_namespace" "airflow" {
 
 resource "kubernetes_secret" "git_ssh_key" {
   count = var.enable_ssh_auth ? 1 : 0
-  
+
   metadata {
     name      = "airflow-git-ssh-key"
     namespace = kubernetes_namespace.airflow.metadata[0].name
@@ -19,7 +19,7 @@ resource "kubernetes_secret" "git_ssh_key" {
 
 resource "kubernetes_secret" "git_ssh_known_hosts" {
   count = var.enable_ssh_auth ? 1 : 0
-  
+
   metadata {
     name      = "airflow-git-known-hosts"
     namespace = kubernetes_namespace.airflow.metadata[0].name
