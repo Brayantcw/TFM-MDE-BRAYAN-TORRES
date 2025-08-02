@@ -5,15 +5,11 @@ resource "kubernetes_namespace" "airflow" {
 }
 
 resource "kubernetes_secret" "git_ssh_key" {
-  count = var.enable_ssh_auth && var.ssh_private_key != "" ? 1 : 0
-
   metadata {
     name      = "airflow-git-ssh-key"
     namespace = kubernetes_namespace.airflow.metadata[0].name
   }
-
   type = "Opaque"
-
   data = {
     gitSshKey = var.ssh_private_key
   }
