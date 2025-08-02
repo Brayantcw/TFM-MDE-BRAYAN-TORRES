@@ -15,8 +15,8 @@ resource "kubernetes_secret" "git_ssh_key" {
   type = "Opaque"
 
   data = {
-    id_rsa         = var.ssh_private_key
-    known_hosts    = var.ssh_known_hosts
+    id_rsa      = var.ssh_private_key
+    known_hosts = var.ssh_known_hosts
   }
 }
 
