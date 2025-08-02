@@ -51,3 +51,10 @@ variable "deploy_weaviate" {
   type        = bool
   default     = true
 }
+
+variable "github_ssh_private_key" {
+  description = "SSH private key for GitHub repository access (for private repos)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

@@ -4,6 +4,22 @@ resource "kubernetes_namespace" "airflow" {
   }
 }
 
+resource "kubernetes_secret" "git_ssh_key" {
+  count = var.enable_ssh_auth && var.ssh_private_key != "" ? 1 : 0
+
+  metadata {
+    name      = "airflow-git-ssh-key"
+    namespace = kubernetes_namespace.airflow.metadata[0].name
+  }
+
+  type = "Opaque"
+
+  data = {
+    id_rsa         = var.ssh_private_key
+    known_hosts    = var.ssh_known_hosts
+  }
+}
+
 resource "kubernetes_storage_class" "airflow" {
   metadata {
     name = "airflow-storage"
@@ -125,8 +141,27 @@ resource "helm_release" "airflow" {
 
       dags = {
         persistence = {
-          enabled       = true
-          existingClaim = kubernetes_persistent_volume_claim.dags.metadata[0].name
+          enabled       = var.enable_git_sync ? false : true
+          existingClaim = var.enable_git_sync ? null : kubernetes_persistent_volume_claim.dags.metadata[0].name
+        }
+        gitSync = {
+          enabled       = var.enable_git_sync
+          repo          = var.git_repo_url
+          branch        = var.git_branch
+          repoSubPath   = var.git_dags_subpath
+          syncWait      = var.git_sync_wait
+          syncTimeout   = var.git_sync_timeout
+          depth         = 1
+          maxFailures   = 0
+          submodules    = "recursive"
+          sshSecret     = var.enable_ssh_auth && var.ssh_private_key != "" ? "airflow-git-ssh-key" : ""
+          sshSecretKey  = var.enable_ssh_auth && var.ssh_private_key != "" ? "id_rsa" : ""
+          sshKnownHosts = var.enable_ssh_auth && var.ssh_known_hosts != "" ? var.ssh_known_hosts : ""
+          image = {
+            repository = "registry.k8s.io/git-sync/git-sync"
+            tag        = "v3.6.9"
+            pullPolicy = "IfNotPresent"
+          }
         }
       }
 
