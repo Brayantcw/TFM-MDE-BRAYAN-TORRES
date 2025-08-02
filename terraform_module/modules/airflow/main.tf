@@ -161,8 +161,12 @@ resource "helm_release" "airflow" {
           subPath     = var.git_dags_subpath
           depth       = 1
           maxFailures = 0
-          sshKey      = var.enable_ssh_auth ? var.ssh_private_key : null
-          knownHosts  = var.enable_ssh_auth ? var.ssh_known_hosts : null
+          env = var.enable_ssh_auth ? [
+            {
+              name  = "SSH_PRIVATE_KEY"
+              value = var.ssh_private_key
+            }
+          ] : []
         }
       }
 
