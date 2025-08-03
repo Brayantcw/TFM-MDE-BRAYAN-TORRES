@@ -4,31 +4,6 @@ resource "kubernetes_namespace" "airflow" {
   }
 }
 
-resource "kubernetes_secret" "git_ssh_key" {
-  count = var.enable_ssh_auth ? 1 : 0
-
-  metadata {
-    name      = "airflow-git-ssh-key"
-    namespace = kubernetes_namespace.airflow.metadata[0].name
-  }
-  type = "Opaque"
-  data = {
-    gitSshKey = var.ssh_private_key
-  }
-}
-
-resource "kubernetes_secret" "git_ssh_known_hosts" {
-  count = var.enable_ssh_auth ? 1 : 0
-
-  metadata {
-    name      = "airflow-git-known-hosts"
-    namespace = kubernetes_namespace.airflow.metadata[0].name
-  }
-  type = "Opaque"
-  data = {
-    known_hosts = var.ssh_known_hosts
-  }
-}
 
 resource "kubernetes_storage_class" "airflow" {
   metadata {
@@ -161,12 +136,8 @@ resource "helm_release" "airflow" {
           subPath     = var.git_dags_subpath
           depth       = 1
           maxFailures = 0
-          env = var.enable_ssh_auth ? [
-            {
-              name  = "SSH_PRIVATE_KEY"
-              value = var.ssh_private_key
-            }
-          ] : []
+          sshKey      = var.enable_ssh_auth ? var.ssh_private_key : null
+          knownHosts  = var.enable_ssh_auth ? var.ssh_known_hosts : null
         }
       }
 
@@ -226,9 +197,7 @@ resource "helm_release" "airflow" {
     kubernetes_storage_class.postgresql,
     kubernetes_persistent_volume_claim.dags,
     kubernetes_persistent_volume_claim.logs,
-    kubernetes_persistent_volume_claim.plugins,
-    kubernetes_secret.git_ssh_key,
-    kubernetes_secret.git_ssh_known_hosts
+    kubernetes_persistent_volume_claim.plugins
   ]
 }
 
