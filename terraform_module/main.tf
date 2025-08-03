@@ -234,7 +234,7 @@ module "airflow" {
 
   # Git sync configuration
   enable_git_sync  = true
-  git_repo_url     = "git@github.com:masterbt77/tfm.git"
+  git_repo_url     = "git@github.com:Brayantcw/tfm.git"
   git_branch       = "dev-airflow-base"
   git_dags_subpath = "dags"
   git_sync_wait    = 60
