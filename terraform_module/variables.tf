@@ -58,3 +58,9 @@ variable "ssh_private_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "enable_app_gateway" {
+  description = "Whether to create Application Gateway for ingress"
+  type        = bool
+  default     = false
+}

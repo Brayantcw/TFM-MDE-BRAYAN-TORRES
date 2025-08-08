@@ -70,6 +70,7 @@ resource "azurerm_subnet" "aks_subnet" {
 }
 
 resource "azurerm_subnet" "app_gateway_subnet" {
+  count                = var.enable_app_gateway ? 1 : 0
   address_prefixes     = ["10.52.1.0/24"]
   name                 = "${random_id.prefix.hex}-appgw-sn"
   resource_group_name  = azurerm_resource_group.rg.name
@@ -77,6 +78,7 @@ resource "azurerm_subnet" "app_gateway_subnet" {
 }
 
 resource "azurerm_public_ip" "app_gateway_pip" {
+  count               = var.enable_app_gateway ? 1 : 0
   allocation_method   = "Static"
   location            = azurerm_resource_group.rg.location
   name                = "${random_id.prefix.hex}-appgw-pip"
@@ -86,6 +88,7 @@ resource "azurerm_public_ip" "app_gateway_pip" {
 }
 
 resource "azurerm_application_gateway" "app_gateway" {
+  count               = var.enable_app_gateway ? 1 : 0
   location            = azurerm_resource_group.rg.location
   name                = "${random_id.prefix.hex}-appgw"
   resource_group_name = azurerm_resource_group.rg.name
@@ -98,7 +101,7 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   gateway_ip_configuration {
     name      = "appGatewayIpConfig"
-    subnet_id = azurerm_subnet.app_gateway_subnet.id
+    subnet_id = azurerm_subnet.app_gateway_subnet[0].id
   }
 
   frontend_port {
@@ -108,7 +111,7 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   frontend_ip_configuration {
     name                 = "appGwPublicFrontendIp"
-    public_ip_address_id = azurerm_public_ip.app_gateway_pip.id
+    public_ip_address_id = azurerm_public_ip.app_gateway_pip[0].id
   }
 
   backend_address_pool {
@@ -166,8 +169,8 @@ module "aks" {
   os_disk_size_gb     = var.os_disk_size_gb
 
   # Ingress configuration
-  enable_ingress = true
-  app_gateway_id = azurerm_application_gateway.app_gateway.id
+  enable_ingress = var.enable_app_gateway
+  app_gateway_id = var.enable_app_gateway ? azurerm_application_gateway.app_gateway[0].id : null
 
   depends_on = [azurerm_application_gateway.app_gateway]
 }
