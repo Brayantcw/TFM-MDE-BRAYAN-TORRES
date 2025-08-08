@@ -1,7 +1,7 @@
 images:
   airflow:
-    repository: brayanto/airflow-custom
-    tag: "3.0.2"
+    repository: masterbt77/airflow-custom
+    tag: "v1.0.4"
     # digest: ~            # leave unset if you’re using tag
     pullPolicy: IfNotPresent
 

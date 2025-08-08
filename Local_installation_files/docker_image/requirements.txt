@@ -4,5 +4,5 @@ fastembed
 weaviate-client
 # Healthcare data pipeline packages
 biopython==1.81                    # For PubMed/NCBI access
-sentence-transformers==2.2.2       # For medical embeddings
+sentence-transformers==2.3.0      # For medical embeddings
 
