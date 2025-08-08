@@ -216,7 +216,7 @@ module "airflow" {
 
   custom_image = {
     repository = "masterbt77/airflow-custom"
-    tag        = "latest"
+    tag        = "v1.0.4"
     pullPolicy = "IfNotPresent"
   }
 

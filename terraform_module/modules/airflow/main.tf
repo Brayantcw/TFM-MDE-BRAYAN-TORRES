@@ -181,11 +181,11 @@ resource "helm_release" "airflow" {
       resources = {
         limits = {
           cpu    = "1000m"
-          memory = "2Gi"
+          memory = "8Gi"
         }
         requests = {
           cpu    = "500m"
-          memory = "1Gi"
+          memory = "4Gi"
         }
       }
     })
