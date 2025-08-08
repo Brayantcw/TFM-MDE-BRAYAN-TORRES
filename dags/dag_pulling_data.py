@@ -23,7 +23,8 @@ def install_packages():
 
 # Configuration
 WEAVIATE_URL = os.getenv("WEAVIATE_URL", "http://weaviate.weaviate.svc.cluster.local:8080")
-ENTREZ_EMAIL = "ba.torres@uniandes.edu.co"  
+ENTREZ_EMAIL = "ba.torres@uniandes.edu.co"  # Fixed email domain
+
 # Use a medical-specific embedding model
 EMBEDDING_MODEL = "pritamdeka/S-PubMedBert-MS-MARCO"  # Optimized for medical text
 # Alternative: "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
@@ -487,7 +488,7 @@ with DAG(
     'medical_research_ingestion',
     default_args=default_args,
     description='Ingest medical research from PubMed into Weaviate for RAG',
-    schedule_interval=None,  # Manual trigger for testing
+    schedule=None,  # Changed from schedule_interval to schedule for Airflow 3.0
     catchup=False,
     params={
         'search_query': 'diabetes[MeSH] AND ("2023"[Date - Publication] : "2024"[Date - Publication])',
