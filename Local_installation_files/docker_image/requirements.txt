@@ -5,18 +5,4 @@ weaviate-client
 # Healthcare data pipeline packages
 biopython==1.81                    # For PubMed/NCBI access
 sentence-transformers==2.2.2       # For medical embeddings
-transformers>=4.30.0              # Required by sentence-transformers
-torch>=2.0.0                      # Required for embeddings
-pandas>=1.5.0                     # Data manipulation
-numpy>=1.24.0                     # Numerical operations
-scikit-learn>=1.2.0              # For TF-IDF and other ML utilities
-spacy>=3.5.0                     # NLP for entity extraction (optional)
-requests>=2.28.0                 # API calls
-lxml>=4.9.0                      # XML parsing for PubMed
 
-# Optional but recommended for healthcare
-yfinance>=0.2.0                  # If you want market data later
-newsapi-python>=0.2.6            # For news integration
-arxiv>=2.0.0                    # For research papers beyond PubMed
-plotly>=5.14.0                   # For visualizations
-streamlit>=1.20.0                # If you want to add UI later
