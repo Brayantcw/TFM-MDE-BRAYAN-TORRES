@@ -514,21 +514,21 @@ with DAG(
     fetch_articles = PythonOperator(
         task_id='fetch_pubmed_articles',
         python_callable=fetch_pubmed_articles,
-        provide_context=True,
+        # Removed provide_context=True - not needed in Airflow 3.0
     )
 
     # Task 3: Generate embeddings
     create_embeddings = PythonOperator(
         task_id='generate_embeddings',
         python_callable=generate_embeddings,
-        provide_context=True,
+        # Removed provide_context=True - not needed in Airflow 3.0
     )
 
     # Task 4: Load to Weaviate
     load_data = PythonOperator(
         task_id='load_to_weaviate',
         python_callable=load_to_weaviate,
-        provide_context=True,
+        # Removed provide_context=True - not needed in Airflow 3.0
     )
  
     # Define task dependencies
