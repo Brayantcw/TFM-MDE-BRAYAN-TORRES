@@ -13,7 +13,7 @@ from typing import Dict, List, Any
 
 def install_packages():
     """Install required packages at runtime"""
-    packages = ['biopython==1.81', 'sentence-transformers==2.2.2']
+    packages = ['biopython==1.81', 'sentence-transformers==2.2.3']
     for package in packages:
         try:
             subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])

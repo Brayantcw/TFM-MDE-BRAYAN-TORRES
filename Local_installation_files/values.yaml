@@ -1,7 +1,7 @@
 images:
   airflow:
     repository: masterbt77/airflow-custom
-    tag: "v1.0.4"
+    tag: "v1.0.5"
     # digest: ~            # leave unset if you’re using tag
     pullPolicy: IfNotPresent
 

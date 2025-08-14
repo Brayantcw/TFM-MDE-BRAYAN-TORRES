@@ -1,9 +1,12 @@
-# ——— Persistence ———
+# values.yaml
+
+# --- Persistence ---
 storage:
   size: 2Gi
-# ——— Service exposure ———
+
+# --- Service ---
 service:
-  type: LoadBalancer   # or NodePort for Docker Desktop
+  type: LoadBalancer
   ports:
     - name: http
       port: 8080
@@ -12,7 +15,7 @@ service:
       port: 50051
       targetPort: 50051
 
-# ——— Resource sizing (optional) ———
+# --- Resources ---
 resources:
   limits:
     cpu: "1"
@@ -21,18 +24,25 @@ resources:
     cpu: 500m
     memory: 1Gi
 
-# ——— Module configuration (optional) ———
+# --- Auth (keep anon for local dev) ---
 authentication:
   anonymous_access:
     enabled: true
-  # apikey:
-  #   enabled: true
-  #   allowed_keys:
-  #     - your-key
-  #   users:
-  #     - your-user
 
-# ——— Image version ———
+# --- Image ---
 image:
-  tag: "1.31.5"        # pin a specific Weaviate version
+  tag: "1.31.5"
   pullPolicy: IfNotPresent
+
+# --- Important: enable modules via env ---
+extraEnv:
+  - name: ENABLE_MODULES
+    value: "generative-openai"
+  - name: DEFAULT_VECTORIZER_MODULE
+    value: "none"           # BYOV: do NOT enable text2vec-*
+  # Option A (server knows the key; easiest to verify)
+  - name: OPENAI_APIKEY
+    valueFrom:
+      secretKeyRef:
+        name: openai-api
+        key: apiKey
