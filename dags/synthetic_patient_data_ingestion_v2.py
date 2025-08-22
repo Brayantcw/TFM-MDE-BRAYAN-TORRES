@@ -1,4 +1,42 @@
-# Synthetic Patient Data Ingestion (Improved)
+# -*- coding: utf-8 -*-
+"""
+DAG de Airflow: Ingesta de Pacientes Sintéticos (Diabetes) con Embeddings
+=========================================================================
+Propósito
+---------
+Generar registros sintéticos de pacientes con diabetes, crear embeddings
+a partir de un resumen clínico y cargarlos en una colección de Weaviate.
+El flujo es idempotente y por lotes.
+
+Fases del pipeline
+------------------
+1) setup_dependencies: instala/importa dependencias (en prod, preferible en la imagen).
+2) initialize_patient_collection: crea el esquema/clase en Weaviate si no existe y muestra conteo.
+3) generate_synthetic_patients: genera pacientes sintéticos reproducibles (semilla fija).
+4) generate_patient_embeddings: vectoriza el resumen clínico con SentenceTransformers.
+5) load_to_weaviate: carga/upsert en Weaviate usando UUID v5 estable por patient_id.
+
+Idempotencia
+------------
+Cada paciente se identifica con un UUID v5 estable derivado del patient_id.
+Si el objeto ya existe, se reemplaza (upsert) en lugar de duplicarse.
+
+Configuración
+-------------
+Variables de entorno:
+  - WEAVIATE_URL, WEAVIATE_API_KEY (opcional), WEAVIATE_TLS (si usas HTTPS verificado)
+Variables de Airflow (UI):
+  - num_patients (número de pacientes a generar)
+  - weaviate_batch_size (tamaño de lote de carga)
+  - embedding_model (modelo de embeddings para los resúmenes)
+  - synthetic_seed (semilla para reproducibilidad)
+
+Notas operativas
+----------------
+- En producción, hornear dependencias en la imagen de los workers.
+- El pipeline imprime métricas básicas (HbA1c promedio, % controlados, % con complicaciones).
+"""
+
 import subprocess
 import sys
 import os
@@ -14,33 +52,35 @@ from airflow.operators.python import PythonOperator
 from airflow.models import Variable
 
 # ---------------------------
-# Runtime deps (fallback)
+# Dependencias en tiempo de ejecución (fallback)
 # ---------------------------
 def install_packages():
-    """Install required packages at runtime (prefer baking into image in prod)."""
+    """
+    Instala paquetes requeridos en tiempo de ejecución.
+    En producción se recomienda incluirlos en la imagen del worker.
+    """
     packages = ['sentence-transformers>=2.2.3', 'numpy', 'pandas', 'weaviate-client>=3.25.0']
     for package in packages:
         try:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
-            print(f"✅ Installed {package}")
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--quiet', package])
+            print(f"[deps] Installed {package}")
         except Exception as e:
-            print(f"⚠️ Failed to install {package}: {e}")
+            print(f"[deps] Failed to install {package}: {e}")
 
 # ---------------------------
-# Config (env + Airflow Variables)
+# Configuración (ENV + Variables de Airflow)
 # ---------------------------
 WEAVIATE_URL = os.getenv("WEAVIATE_URL", "http://weaviate.weaviate.svc.cluster.local:8080")
 WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY")  # opcional
 WEAVIATE_TLS = os.getenv("WEAVIATE_TLS", "false").lower() == "true"  # si usas https con verificación
 
-# Airflow Variables (puedes cambiarlas desde UI):
 VAR_PATIENTS = int(Variable.get("num_patients", default_var="500"))
 VAR_BATCH_SIZE = int(Variable.get("weaviate_batch_size", default_var="200"))
 VAR_EMB_MODEL = Variable.get("embedding_model", default_var="pritamdeka/S-PubMedBert-MS-MARCO")
 VAR_SEED = int(Variable.get("synthetic_seed", default_var="42"))
 
 # ---------------------------
-# Schema
+# Esquema de Weaviate
 # ---------------------------
 PATIENT_CLASS = "DiabetesPatients"
 PATIENT_SCHEMA = {
@@ -103,7 +143,7 @@ PATIENT_SCHEMA = {
 }
 
 # ---------------------------
-# DAG defaults
+# Parámetros por defecto del DAG
 # ---------------------------
 default_args = {
     'owner': 'healthcare-team',
@@ -119,6 +159,10 @@ default_args = {
 # Helpers
 # ---------------------------
 def setup_dependencies():
+    """
+    Instala e importa dependencias en tiempo de ejecución.
+    Devuelve True si los imports se realizaron correctamente.
+    """
     install_packages()
     global np, SentenceTransformer, weaviate, AuthApiKey
     import numpy as np
@@ -128,10 +172,14 @@ def setup_dependencies():
         from weaviate.auth import AuthApiKey
     except Exception:
         AuthApiKey = None
-    print("✅ Dependencies ready")
+    print("[deps] Runtime dependencies ready")
     return True
 
 def weaviate_client():
+    """
+    Devuelve un cliente de Weaviate con autenticación opcional por API Key.
+    Para TLS con certificados propios, usar WEAVIATE_TLS=true y URL https://
+    """
     import weaviate
     try:
         from weaviate.auth import AuthApiKey
@@ -139,7 +187,6 @@ def weaviate_client():
         AuthApiKey = None
 
     auth = AuthApiKey(api_key=WEAVIATE_API_KEY) if (WEAVIATE_API_KEY and AuthApiKey) else None
-    # NOTE: For TLS with custom certs, set WEAVIATE_TLS=true and ensure the URL is https://
     client = weaviate.Client(
         url=WEAVIATE_URL,
         auth_client_secret=auth,
@@ -149,30 +196,38 @@ def weaviate_client():
     return client
 
 def initialize_patient_collection():
+    """
+    Crea la clase en Weaviate si no existe y muestra el conteo actual de objetos.
+    """
     client = weaviate_client()
     schema = client.schema.get()
     existing = [c['class'] for c in schema.get('classes', [])]
     if PATIENT_CLASS not in existing:
         client.schema.create_class(PATIENT_SCHEMA)
-        print(f"✅ Created class: {PATIENT_CLASS}")
+        print(f"[weaviate] Created class: {PATIENT_CLASS}")
     else:
-        print(f"ℹ️ Class {PATIENT_CLASS} already exists")
+        print(f"[weaviate] Class {PATIENT_CLASS} already exists")
 
-    # quick count
+    # Conteo rápido
     try:
         agg = client.query.aggregate(PATIENT_CLASS).with_meta_count().do()
         count = agg['data']['Aggregate'][PATIENT_CLASS][0]['meta']['count']
-        print(f"📊 Current objects: {count}")
+        print(f"[weaviate] Current objects: {count}")
     except Exception as e:
-        print(f"⚠️ Could not aggregate count: {e}")
+        print(f"[weaviate] Could not aggregate count: {e}")
     return True
 
 def set_seeds(seed: int):
+    """Fija las semillas de random y numpy para reproducibilidad."""
     import numpy as np
     random.seed(seed)
     np.random.seed(seed)
 
 def calculate_cv_risk(age, gender, bp_systolic, ldl, hdl, smoking, diabetes):
+    """
+    Calcula un riesgo cardiovascular simplificado (0..1) a partir de factores básicos.
+    Este cálculo es heurístico y solo con fines de simulación.
+    """
     risk = 0.1
     risk += max(0, (age - 40) * 0.01)
     if gender == "Male":
@@ -194,19 +249,23 @@ def calculate_cv_risk(age, gender, bp_systolic, ldl, hdl, smoking, diabetes):
     return min(1.0, max(0.0, risk))
 
 def stable_uuid_for_patient(pid: str) -> str:
-    """Deterministic UUID v5 using a fixed namespace + patient_id."""
+    """Genera un UUID v5 determinista usando un namespace fijo + patient_id."""
     namespace = uuid.UUID("00000000-0000-0000-0000-000000000001")
     return str(uuid.uuid5(namespace, pid))
 
 def generate_synthetic_patients(**context):
+    """
+    Genera pacientes sintéticos y devuelve una lista con sus campos clínicos y de estilo de vida.
+    Produce además un resumen clínico en texto que se usará para embeddings.
+    """
     import numpy as np
 
-    # Params precedence: Airflow params -> Variable -> default
+    # Precedencia de parámetros: Airflow params -> Variable -> default
     params = context.get('params', {}) or {}
     num_patients = int(params.get('num_patients', VAR_PATIENTS))
     seed = int(params.get('seed', VAR_SEED))
 
-    print(f"🏥 Generating {num_patients} patients with seed {seed}")
+    print(f"[gen] Generating {num_patients} patients with seed {seed}")
     set_seeds(seed)
 
     symptoms_pool = [
@@ -339,7 +398,7 @@ def generate_synthetic_patients(**context):
         Risk scores: CV {cv_risk:.1%}, CKD {ckd_risk:.1%}, Retinopathy {retinopathy_risk:.1%}.
         """.strip()
 
-        pid = f"P{str(i+1).zfill(6)}"
+        pid = f"P{str(i + 1).zfill(6)}"
         patient = {
             'patient_id': pid,
             'age': age, 'gender': gender, 'diabetes_type': diabetes_type,
@@ -384,64 +443,67 @@ def generate_synthetic_patients(**context):
         patients.append(patient)
 
         if (i + 1) % 100 == 0:
-            print(f"📊 Generated {i + 1}/{num_patients}")
+            print(f"[gen] Generated {i + 1}/{num_patients}")
 
     avg_hba1c = sum(p['hba1c_current'] for p in patients) / len(patients)
     controlled = sum(1 for p in patients if p['hba1c_current'] < 7) / len(patients) * 100
     with_complications = sum(1 for p in patients if p['complications']) / len(patients) * 100
-    print(f"✅ Generated {len(patients)} patients | Avg HbA1c: {avg_hba1c:.1f}% | <7%: {controlled:.1f}% | Complications: {with_complications:.1f}%")
+    print(f"[gen] Summary: {len(patients)} patients | Avg HbA1c={avg_hba1c:.1f}% | <7%={controlled:.1f}% | Complications={with_complications:.1f}%")
 
     return {"patients": patients, "seed": seed}
 
 def generate_patient_embeddings(**context):
+    """
+    Genera embeddings para los pacientes a partir del campo 'clinical_summary'.
+    Usa el modelo configurado en params/Variable y devuelve los pacientes
+    con una clave adicional 'embedding' (lista de números).
+    """
     from sentence_transformers import SentenceTransformer
     ti = context['task_instance']
     payload = ti.xcom_pull(task_ids='generate_patients') or {}
     patients = payload.get("patients", [])
     if not patients:
-        print("⚠️ No patients to embed")
+        print("[embed] No patients to embed")
         return {"patients": []}
 
     model_name = context.get('params', {}).get('embedding_model', VAR_EMB_MODEL)
-    print(f"🧮 Loading embedding model: {model_name}")
+    print(f"[embed] Loading embedding model: {model_name}")
     try:
         model = SentenceTransformer(model_name)
     except Exception as e:
-        print(f"⚠️ Failed to load {model_name}: {e} → falling back to all-MiniLM-L6-v2")
+        print(f"[embed] Failed to load {model_name}: {e} | Falling back to all-MiniLM-L6-v2")
         model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
     texts = [p["clinical_summary"] for p in patients]
     embeddings = model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
     for p, vec in zip(patients, embeddings):
         p["embedding"] = vec.tolist()
-    print(f"✅ Embedded {len(patients)} patients")
+    print(f"[embed] Embedded {len(patients)} patients")
     return {"patients": patients}
 
 def load_patients_to_weaviate(**context):
+    """
+    Carga los pacientes (con embeddings) en Weaviate mediante lotes.
+    Aplica upsert: si el patient_id ya existe (UUID estable), reemplaza el objeto.
+    Guarda métricas en la Variable 'last_patient_ingestion'.
+    """
     import weaviate
     ti = context['task_instance']
     payload = ti.xcom_pull(task_ids='generate_embeddings') or {}
     patients = payload.get("patients", [])
     if not patients:
-        print("⚠️ No patients to load")
+        print("[load] No patients to load")
         return {"loaded": 0, "replaced": 0, "failed": 0}
 
     client = weaviate_client()
     stats = {"loaded": 0, "replaced": 0, "failed": 0}
 
-    # Configure batch
+    # Configuración de batch
     client.batch.configure(
         batch_size=VAR_BATCH_SIZE,
         dynamic=True,
         timeout_retries=3
     )
-
-    # Use batch with callbacks; if duplicate, do replace
-    def _handle_result(results):
-        nonlocal stats
-        for res in results:
-            if "result" in res and res["result"] and res["result"].get("errors"):
-                stats["failed"] += 1
 
     batch_objects = 0
     with client.batch as batch:
@@ -451,7 +513,7 @@ def load_patients_to_weaviate(**context):
                 pid = patient["patient_id"]
                 obj_uuid = stable_uuid_for_patient(pid)
 
-                # Try adding to batch; if exists, replace
+                # Intento de alta por batch; si existe, replace
                 try:
                     batch.add_data_object(
                         data_object=patient,
@@ -462,7 +524,7 @@ def load_patients_to_weaviate(**context):
                     stats["loaded"] += 1
                     batch_objects += 1
                 except Exception as e:
-                    # Fallback path: replace existing object (upsert-like)
+                    # Fallback: replace (upsert)
                     try:
                         client.data_object.replace(
                             data_object=patient,
@@ -473,17 +535,17 @@ def load_patients_to_weaviate(**context):
                         stats["replaced"] += 1
                     except Exception as e2:
                         stats["failed"] += 1
-                        print(f"❌ Failed upsert {pid}: {e2}")
+                        print(f"[load] Failed upsert {pid}: {e2}")
                         continue
 
                 if batch_objects and batch_objects % 500 == 0:
-                    print(f"📤 Batched {batch_objects} so far...")
+                    print(f"[load] Batched {batch_objects} objects so far")
 
             except Exception as e:
                 stats["failed"] += 1
-                print(f"❌ Error processing patient: {e}")
+                print(f"[load] Error processing patient: {e}")
 
-    print(f"\n📊 LOADING COMPLETE → loaded: {stats['loaded']}, replaced: {stats['replaced']}, failed: {stats['failed']}")
+    print(f"[load] COMPLETE | loaded={stats['loaded']}, replaced={stats['replaced']}, failed={stats['failed']}")
     Variable.set("last_patient_ingestion", json.dumps({
         'timestamp': datetime.utcnow().isoformat() + 'Z',
         'stats': stats,
@@ -493,13 +555,13 @@ def load_patients_to_weaviate(**context):
     return stats
 
 # ---------------------------
-# DAG definition
+# Definición del DAG
 # ---------------------------
 with DAG(
     dag_id='synthetic_patient_data_ingestion_v2',
     default_args=default_args,
     description='Generate & ingest synthetic diabetes patients with embeddings (idempotent, batched, reproducible)',
-    schedule=None,  # run manually unless you set a cron
+    schedule=None,  # ejecución manual salvo que configures un cron
     catchup=False,
     params={
         'num_patients': VAR_PATIENTS,
