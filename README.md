@@ -62,9 +62,10 @@ cd Local_installation_files
 ```
 tfm/
 ├── dags/                          # Airflow DAG files
-│   ├── dag_pulling_data.py        # PubMed medical research ingestion
-│   ├── dag_data_generator.py      # Synthetic patient data generation  
-│   └── dag_validator.py           # Data validation and quality checks
+│   ├── medical_research_ingestion_v2.py        # PubMed medical research ingestion
+│   ├── medical_research_validation_v2.py       # Medical research data validation
+│   ├── synthetic_patient_data_ingestion_v2.py  # Synthetic patient data generation
+│   └── synthetic_patient_data_validation_v1.py # Patient data validation and quality checks
 ├── Agent/                         # Medical RAG Agent (Streamlit app)
 │   └── agent.py                   # Main agent application
 ├── terraform_module/              # Infrastructure as Code
@@ -79,9 +80,15 @@ tfm/
 │   ├── install-airflow.sh        # Local Airflow installation
 │   ├── values.yaml               # Helm values for Airflow
 │   ├── weaviate-values.yaml      # Helm values for Weaviate
-│   ├── k8s/                      # Kubernetes manifests
-│   └── notebooks/                # Jupyter notebooks for analysis
-├── logs/                         # Airflow execution logs
+│   ├── k8s/                      # Kubernetes manifests (PV/PVC configs)
+│   └── port-forward.sh           # Port forwarding script for local access
+├── docker_image/                 # Custom Airflow Docker image
+│   ├── dockerfile                # Dockerfile for Airflow with medical packages
+│   └── requirements.txt          # Python dependencies (fastembed, weaviate-client, etc.)
+├── Utilities/                    # Analysis and utility tools
+│   └── plotter.ipynb            # Jupyter notebook for data visualization
+├── media/                        # Project documentation assets
+│   └── Arquitectura.png         # Architecture diagram
 └── README.md                     # This file
 ```
 
@@ -89,29 +96,37 @@ tfm/
 
 This system provides an end-to-end medical research data pipeline:
 
-### 1. Data Ingestion (`dag_pulling_data.py`)
+### 1. Medical Research Ingestion (`medical_research_ingestion_v2.py`)
 - **PubMed Integration**: Fetches medical research papers using Biopython
 - **Medical Embeddings**: Uses specialized medical BERT models (`pritamdeka/S-PubMedBert-MS-MARCO`)
 - **Structured Storage**: Stores papers in Weaviate with metadata (PMID, authors, journal, MeSH terms)
 - **Automated Processing**: Handles abstract extraction, keyword processing, and citation analysis
 
-### 2. Synthetic Data Generation (`dag_data_generator.py`)
+### 2. Synthetic Patient Data Ingestion (`synthetic_patient_data_ingestion_v2.py`)
 - **Patient Profiles**: Generates realistic diabetes patient records
-- **Clinical Parameters**: HbA1c levels, glucose readings, BMI, blood pressure
+- **Clinical Parameters**: HbA1c levels, glucose readings, BMI, blood pressure, eGFR, creatinine
 - **Treatment History**: Medication records, complications, lifestyle factors
-- **Vector Storage**: Embeds patient profiles for similarity matching
+- **Vector Storage**: Embeds patient profiles for similarity matching using clinical summaries
 
-### 3. Data Validation (`dag_validator.py`)
-- **Quality Checks**: Validates data integrity and completeness
-- **Semantic Search Tests**: Ensures proper embedding and retrieval
-- **RAG Pipeline Testing**: End-to-end system validation
-- **Performance Metrics**: Query response times and accuracy
+### 3. Medical Research Validation (`medical_research_validation_v2.py`)
+- **Collection Health Checks**: Validates MedicalResearch collection integrity
+- **Quality Metrics**: Document count, embedding quality, retrieval accuracy
+- **Search Performance**: Tests vector and hybrid search capabilities
+- **RAG Pipeline Testing**: End-to-end medical research retrieval validation
 
-### 4. AI-Powered Query Interface
-- **Research Assistant**: Ask questions about medical literature
-- **Patient Similarity**: Find similar patients based on clinical profiles
-- **Vector Search**: Semantic similarity using medical embeddings
-- **Streamlit UI**: User-friendly interface for researchers
+### 4. Patient Data Validation (`synthetic_patient_data_validation_v1.py`)
+- **Cohort Statistics**: Analyzes patient demographics, clinical metrics, and risk factors
+- **Similarity Search**: Tests patient matching and retrieval algorithms
+- **Clinical Correlations**: HbA1c-glucose and creatinine-eGFR correlations
+- **Data Quality Reports**: Comprehensive validation metrics and recommendations
+
+### 5. AI-Powered Query Interface (`Agent/agent.py`)
+- **Medical RAG System**: Retrieval-Augmented Generation for medical questions
+- **Dual Collections**: Query both medical research papers and patient data
+- **Multiple LLM Providers**: Supports OpenAI, Azure OpenAI, and Ollama
+- **Advanced Search**: Vector, BM25, and hybrid search modes with optional reranking
+- **Patient Similarity**: Find similar patients based on clinical profiles and filters
+- **Streamlit UI**: Interactive web interface for researchers and clinicians
 
 ## 🛠️ Technical Architecture
 
@@ -130,9 +145,10 @@ This system provides an end-to-end medical research data pipeline:
 5. **Infrastructure Layer**: Terraform-managed Azure resources
 
 ### Medical Data Models
-- **MedicalResearch Collection**: PubMed papers with clinical metadata
-- **DiabetesPatients Collection**: Synthetic patient profiles for similarity matching
-- **Embedding Models**: Specialized medical BERT variants for domain-specific understanding
+- **MedicalResearch Collection**: PubMed papers with clinical metadata (PMID, title, abstract, journal, authors)
+- **DiabetesPatients Collection**: Synthetic patient profiles for similarity matching with clinical parameters
+- **Embedding Models**: Medical BERT (`pritamdeka/S-PubMedBert-MS-MARCO`) for domain-specific understanding
+- **Custom Docker Image**: Extends Apache Airflow with medical data processing libraries (biopython, sentence-transformers, weaviate-client)
 
 ## 🚀 Getting Started with the Medical RAG System
 
@@ -159,9 +175,9 @@ helm upgrade --install weaviate weaviate/weaviate \
 ```
 
 ### 3. Run Data Pipeline
-- Access Airflow UI and trigger `medical_research_ingestion` DAG
-- Run `synthetic_patient_data_ingestion` for patient data
-- Execute `medical_research_validation` for quality checks
+- Access Airflow UI and trigger `medical_research_ingestion_v2` DAG
+- Run `synthetic_patient_data_ingestion_v2` for patient data
+- Execute `medical_research_validation_v2` and `synthetic_patient_data_validation_v1` for quality checks
 
 ### 4. Start RAG Agent
 ```bash
@@ -246,7 +262,11 @@ kubectl exec -it deployment/airflow-webserver -n airflow -- airflow dags list
 
 # Trigger medical data ingestion
 kubectl exec -it deployment/airflow-webserver -n airflow -- \
-  airflow dags trigger medical_research_ingestion
+  airflow dags trigger medical_research_ingestion_v2
+
+# Trigger patient data ingestion
+kubectl exec -it deployment/airflow-webserver -n airflow -- \
+  airflow dags trigger synthetic_patient_data_ingestion_v2
 
 # Monitor DAG runs
 kubectl logs -f deployment/airflow-scheduler -n airflow
