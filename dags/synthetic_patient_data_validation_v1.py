@@ -231,4 +231,270 @@ def cohort_stats():
     }
 
     corr_hba1c_glu = float(df[['hba1c_current','glucose_fasting']].corr().iloc[0,1])
-    corr_crea_egfr = float
+    corr_crea_egfr = float(df[['creatinine','egfr']].corr().iloc[0,1])
+    try:
+        bmi_t2 = float(df[df['diabetes_type']=='Type 2']['bmi'].mean())
+        bmi_t1 = float(df[df['diabetes_type']=='Type 1']['bmi'].mean())
+    except Exception:
+        bmi_t2, bmi_t1 = float('nan'), float('nan')
+
+    stats['corr_hba1c_glucose_fasting'] = corr_hba1c_glu
+    stats['corr_creatinine_egfr'] = corr_crea_egfr
+    stats['avg_bmi_type2'] = bmi_t2
+    stats['avg_bmi_type1'] = bmi_t1
+
+    print("\n[stats] Key stats:")
+    for k, v in stats.items():
+        if isinstance(v, float):
+            print(f"  {k:30}: {v:.3f}")
+        else:
+            print(f"  {k:30}: {v}")
+
+    Variable.set("diabetes_stats", json.dumps(stats))
+    return stats
+
+def similar_patients_searches():
+    """
+    Ejecuta consultas de similitud (nearObject) y filtros clínicos:
+    - Selecciona un paciente ancla (T2DM no controlado y obeso si existe).
+    - nearObject básico excluyendo el propio ancla.
+    - nearObject con filtros (mismo tipo de diabetes y mismo sexo).
+    - Cohorte problemática: T2DM con HbA1c>=umbral y BMI>=umbral, sin vector.
+    Guarda ejemplos en 'diabetes_similarity_examples'.
+    """
+    import pandas as pd  # opcional, por si se desea tabular en futuras extensiones
+    random.seed(VAR_SEED)
+    client = _weaviate_client()
+    class_name = VAR_CLASS
+    k = VAR_TOP_K
+
+    _print_title("SIMILAR PATIENTS SEARCHES")
+
+    # 1) Encontrar ancla: T2DM no controlado y obeso
+    fields = ['patient_id','diabetes_type','hba1c_current','bmi','age','gender']
+    res = client.query.get(class_name, fields)\
+        .with_limit(VAR_SAMPLE_LIMIT)\
+        .with_additional(['id'])\
+        .do()
+    items = res['data']['Get'].get(class_name, [])
+    if not items:
+        raise ValueError("No patients to search.")
+
+    uncontrolled = [
+        x for x in items
+        if (x.get('diabetes_type') == 'Type 2'
+            and (x.get('hba1c_current') or 0) >= VAR_MIN_HBA1C_UNCONTROLLED
+            and (x.get('bmi') or 0) >= VAR_MIN_BMI_OBESE
+            and (x.get('age') or 0) >= VAR_MIN_AGE
+            and (x.get('age') or 0) <= VAR_MAX_AGE)
+    ]
+    anchor = random.choice(uncontrolled) if uncontrolled else random.choice(items)
+    anchor_id = anchor.get('_additional', {}).get('id')
+    print(f"[similar] Anchor patient: id={anchor_id}, pid={anchor.get('patient_id')}, "
+          f"type={anchor.get('diabetes_type')}, HbA1c={anchor.get('hba1c_current')}, BMI={anchor.get('bmi')}")
+
+    # 2) nearObject básico (excluir el propio ancla con where patient_id !=)
+    where_filter = {
+        "path": ["patient_id"],
+        "operator": "NotEqual",
+        "valueString": anchor.get('patient_id')
+    }
+    fields_detail = [
+        'patient_id','age','gender','diabetes_type','hba1c_current','bmi',
+        'glucose_fasting','egfr','cardiovascular_risk_score','kidney_disease_risk'
+    ]
+    res_knn = client.query.get(class_name, fields_detail)\
+        .with_near_object({"id": anchor_id})\
+        .with_where(where_filter)\
+        .with_limit(k)\
+        .with_additional(['certainty','distance','id'])\
+        .do()
+    hits = res_knn['data']['Get'].get(class_name, [])
+    print(f"[similar] Found {len(hits)} similar patients (K={k})")
+    for i, h in enumerate(hits, 1):
+        add = h.get('_additional', {})
+        cert = add.get('certainty')
+        dist = add.get('distance')
+        if cert is not None and dist is not None:
+            print(f"  {i}. {h.get('patient_id')} | {h.get('diabetes_type')} | "
+                  f"HbA1c {h.get('hba1c_current')} | BMI {h.get('bmi')} | "
+                  f"certainty={cert:.3f} distance={dist:.3f}")
+        else:
+            print(f"  {i}. {h.get('patient_id')} | score info N/A")
+
+    # 3) nearObject + filtros (mismo tipo de diabetes y mismo sexo)
+    where_filter2 = {
+        "operator":"And",
+        "operands":[
+            {"path":["diabetes_type"],"operator":"Equal","valueString": anchor.get('diabetes_type', 'Type 2')},
+            {"path":["gender"],"operator":"Equal","valueString": anchor.get('gender','Male')}
+        ]
+    }
+    res_knn_f = client.query.get(class_name, fields_detail)\
+        .with_near_object({"id": anchor_id})\
+        .with_where(where_filter2)\
+        .with_limit(k)\
+        .with_additional(['certainty','distance','id'])\
+        .do()
+    hits2 = res_knn_f['data']['Get'].get(class_name, [])
+    print(f"[similar] Found {len(hits2)} similar patients with same type and gender")
+    for i, h in enumerate(hits2, 1):
+        add = h.get('_additional', {})
+        cert = add.get('certainty')
+        dist = add.get('distance')
+        if cert is not None and dist is not None:
+            print(f"  {i}. {h.get('patient_id')} | {h.get('gender')} | {h.get('diabetes_type')} | "
+                  f"HbA1c {h.get('hba1c_current')} | BMI {h.get('bmi')} | "
+                  f"certainty={cert:.3f} distance={dist:.3f}")
+        else:
+            print(f"  {i}. {h.get('patient_id')}")
+
+    # 4) Cohorte filtrada sin vector (T2DM, HbA1c>=umbral, BMI>=umbral)
+    where_filter3 = {
+        "operator":"And",
+        "operands":[
+            {"path":["diabetes_type"],"operator":"Equal","valueString":"Type 2"},
+            {"path":["hba1c_current"],"operator":"GreaterThanEqual","valueNumber": VAR_MIN_HBA1C_UNCONTROLLED},
+            {"path":["bmi"],"operator":"GreaterThanEqual","valueNumber": VAR_MIN_BMI_OBESE},
+        ]
+    }
+    res_filter = client.query.get(class_name, fields_detail)\
+        .with_where(where_filter3)\
+        .with_limit(min(k, 10))\
+        .with_additional(['id'])\
+        .do()
+    cohort = res_filter['data']['Get'].get(class_name, [])
+    print(f"[similar] Cohort (T2DM, HbA1c>={VAR_MIN_HBA1C_UNCONTROLLED}, BMI>={VAR_MIN_BMI_OBESE}) -> {len(cohort)} muestras")
+    for i, c in enumerate(cohort[:k], 1):
+        print(f"  {i}. {c.get('patient_id')} | HbA1c {c.get('hba1c_current')} | BMI {c.get('bmi')}")
+
+    out = {
+        'anchor': {
+            'id': anchor_id,
+            'patient_id': anchor.get('patient_id'),
+            'gender': anchor.get('gender'),
+            'diabetes_type': anchor.get('diabetes_type'),
+            'hba1c_current': anchor.get('hba1c_current'),
+            'bmi': anchor.get('bmi'),
+        },
+        'similar_basic': hits,
+        'similar_same_type_gender': hits2,
+        'cohort_uncontrolled_obese': cohort[:k]
+    }
+    Variable.set("diabetes_similarity_examples", json.dumps(out))
+    return {'anchor_id': anchor_id, 'k': k, 'basic': len(hits), 'filtered': len(hits2), 'cohort': len(cohort)}
+
+def validation_report():
+    """
+    Consolida 'diabetes_health', 'diabetes_stats' y 'diabetes_similarity_examples',
+    y emite recomendaciones simples de calidad/coherencia. Guarda el resultado
+    en 'diabetes_validation_report'.
+    """
+    _print_title("DIABETES VALIDATION REPORT")
+    try:
+        health = json.loads(Variable.get("diabetes_health", "{}"))
+        stats = json.loads(Variable.get("diabetes_stats", "{}"))
+        sims = json.loads(Variable.get("diabetes_similarity_examples", "{}"))
+
+        total = int(health.get('total', 0))
+        avg_hba1c = float(stats.get('avg_hba1c', 0.0))
+        pct_under7 = float(stats.get('pct_hba1c_under_7', 0.0))
+        corr_hg = float(stats.get('corr_hba1c_glucose_fasting', 0.0))
+        corr_ce = float(stats.get('corr_creatinine_egfr', 0.0))
+        bmi_t2 = float(stats.get('avg_bmi_type2', 0.0))
+        bmi_t1 = float(stats.get('avg_bmi_type1', 0.0))
+
+        recs = []
+        status = "OPERATIONAL"
+
+        # Chequeos simples de coherencia clínica
+        if corr_hg < 0.45:
+            recs.append("La correlación HbA1c↔Glucosa en ayunas es baja (<0.45). Revisa generación/ruido.")
+            status = "WARNINGS"
+        if corr_ce > -0.3:  # debería ser claramente negativa
+            recs.append("La correlación Creatinina↔eGFR no es claramente negativa. Revisar fórmula/ruido.")
+            status = "WARNINGS"
+        if not (bmi_t2 > bmi_t1):
+            recs.append("El BMI medio en T2DM no es mayor que en T1DM. Ajustar distribución de BMI.")
+            status = "WARNINGS"
+        if pct_under7 < 20 or pct_under7 > 70:
+            recs.append("Proporción con HbA1c<7% fuera de rango típico (20–70%). Ajustar control glucémico.")
+            status = "WARNINGS"
+        if total < 200:
+            recs.append("Pocos pacientes (<200). Incrementar la cohorte para mayor robustez.")
+            status = "NEEDS_MORE_DATA"
+
+        report = {
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'class': VAR_CLASS,
+            'total': total,
+            'metrics': stats,
+            'similarity_examples_summary': {
+                'anchor': sims.get('anchor', {}),
+                'counts': {
+                    'basic': len(sims.get('similar_basic', [])),
+                    'filtered': len(sims.get('similar_same_type_gender', [])),
+                    'cohort': len(sims.get('cohort_uncontrolled_obese', []))
+                }
+            },
+            'recommendations': recs,
+            'overall_status': status
+        }
+
+        print("\n[report] SUMMARY")
+        print(f"  Total patients: {total}")
+        print(f"  Avg HbA1c: {avg_hba1c:.2f} | %<7%: {pct_under7:.1f}%")
+        print(f"  Corr(HbA1c, GluFast): {corr_hg:.2f} | Corr(Crea, eGFR): {corr_ce:.2f}")
+        print(f"  BMI mean (T2 vs T1): {bmi_t2:.1f} vs {bmi_t1:.1f}")
+        if recs:
+            print("\n[report] Recommendations:")
+            for r in recs:
+                print(f"   - {r}")
+
+        Variable.set("diabetes_validation_report", json.dumps(report))
+        print("[report] Stored in Variable 'diabetes_validation_report'")
+        return report
+
+    except Exception as e:
+        print(f"[report] Error building report: {e}")
+        raise
+
+# =========================
+# DAG
+# =========================
+with DAG(
+    dag_id='synthetic_patient_data_validation_v1',
+    default_args=default_args,
+    description='Validate DiabetesPatients collection, compute stats, and run similarity searches',
+    schedule=None,
+    catchup=False,
+    tags=['healthcare','validation','weaviate','patients','similarity'],
+    max_active_runs=1,
+) as dag:
+
+    task_install = PythonOperator(
+        task_id='install_packages',
+        python_callable=install_packages,
+    )
+
+    task_health = PythonOperator(
+        task_id='validate_collection',
+        python_callable=validate_collection,
+    )
+
+    task_stats = PythonOperator(
+        task_id='cohort_stats',
+        python_callable=cohort_stats,
+    )
+
+    task_similarity = PythonOperator(
+        task_id='similar_patients_searches',
+        python_callable=similar_patients_searches,
+    )
+
+    task_report = PythonOperator(
+        task_id='validation_report',
+        python_callable=validation_report,
+    )
+
+    task_install >> task_health >> task_stats >> task_similarity >> task_report

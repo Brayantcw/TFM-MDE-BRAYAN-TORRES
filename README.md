@@ -1,33 +1,72 @@
 # Medical Research Data Pipeline and RAG System
 
-This repository implements a comprehensive medical research data pipeline using Apache Airflow, Weaviate vector database, and AI-powered retrieval-augmented generation (RAG) for medical research and patient similarity analysis.
+This repository implements a comprehensive medical research data pipeline that combines Apache Airflow workflow orchestration, Weaviate vector database, and AI-powered retrieval-augmented generation (RAG) to enable advanced medical research and patient similarity analysis.
 
-## 🚀 Quick Start
+## Overview
+
+The system provides:
+- **Automated Data Ingestion**: PubMed medical research papers and synthetic patient data
+- **Vector Database Storage**: Semantic search capabilities using medical-specific embeddings
+- **Data Validation Pipeline**: Comprehensive quality checks and performance metrics
+- **AI-Powered Query Interface**: Multi-provider LLM support for research questions and patient similarity
+- **Cloud-Native Infrastructure**: Kubernetes deployment on Azure with Terraform automation
+
+## Key Features
+
+- **Medical Domain Optimization**: Uses specialized BERT models for medical text understanding
+- **Dual Data Collections**: Research papers (PubMed) and patient profiles (synthetic diabetes data)
+- **Advanced Search**: Vector, BM25, and hybrid search modes with optional reranking
+- **Flexible AI Integration**: Supports OpenAI, Azure OpenAI, and local Ollama models
+- **Production Ready**: Full infrastructure automation with monitoring and security considerations
+
+## Quick Start
 
 ### Prerequisites
-- Azure subscription with AKS cluster access
-- [Terraform](https://terraform.io) installed  
+
+**For Azure Deployment:**
+- Azure subscription with contributor access
+- [Terraform](https://terraform.io) v1.0+ installed  
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) installed
-- [Helm](https://helm.sh/docs/intro/install/) installed
+- [Helm](https://helm.sh/docs/intro/install/) v3.0+ installed
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) installed and authenticated
+
+**For Local Development:**
+- Docker Desktop with Kubernetes enabled
 - Python 3.8+ for local agent development
+- Git for repository access (if using private repos)
+
+**For RAG Agent:**
+- LLM API access (OpenAI, Azure OpenAI, or local Ollama)
+- Streamlit and required Python packages
 
 ### Infrastructure Deployment
 
 Deploy the complete infrastructure on Azure:
 
 ```bash
-cd terraform_module
+# Clone the repository
+git clone <repository-url>
+cd tfm/terraform_module
+
+# Initialize Terraform (first time only)
 terraform init
+
+# Review planned changes
 terraform plan
+
+# Deploy infrastructure
 terraform apply
+
+# Get AKS credentials
+az aks get-credentials --resource-group tfm-brayanto --name aks-cluster
 ```
 
 This will create:
-1. ✅ Azure Kubernetes Service (AKS) cluster
-2. ✅ Apache Airflow with custom medical research DAGs
-3. ✅ Weaviate vector database for medical document storage
-4. ✅ Helm charts for service orchestration
-5. ✅ Application Gateway for secure access
+1. Azure Kubernetes Service (AKS) cluster
+2. Apache Airflow with custom medical research DAGs
+3. Weaviate vector database for medical document storage
+4. Helm charts for service orchestration
+5. Application Gateway for secure access
 
 ### Local Installation (Development)
 
@@ -37,27 +76,34 @@ cd Local_installation_files
 ./install-airflow.sh
 ```
 
-### Access Services
+### Service Access
 
-1. **Airflow Web UI:**
-   - Azure: Through Application Gateway (HTTPS)
-   - Local: http://localhost:8080 (after port-forward)
-   - Credentials: `admin/admin`
+After successful deployment, access the services:
 
-2. **Weaviate Vector Database:**
-   - Azure: Internal cluster access
-   - Local: http://localhost:9090 (after port-forward)
+**Airflow Web UI:**
+- Azure: Through Application Gateway (when enabled)
+- Local: http://localhost:8080 (run `./port-forward.sh` from Local_installation_files)
+- Default credentials: `admin/admin`
 
-3. **Medical RAG Agent:**
-   ```bash
-   cd Agent
-   pip install -r requirements.txt
-   streamlit run agent.py
-   ```
+**Weaviate Vector Database:**
+- Azure: Internal cluster access via port-forward
+- Local: http://localhost:9090 (via port-forward)
+
+**Medical RAG Agent:**
+- Local: http://localhost:8501 (after running `streamlit run agent.py`)
+
+**Port Forwarding for Local Access:**
+```bash
+# Airflow UI
+kubectl port-forward svc/airflow-webserver 8080:8080 -n airflow
+
+# Weaviate Console
+kubectl port-forward svc/weaviate 9090:8080 -n weaviate
+```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 tfm/
@@ -92,7 +138,7 @@ tfm/
 └── README.md                     # This file
 ```
 
-## 🔄 Medical Data Pipeline Workflow
+## Medical Data Pipeline Workflow
 
 This system provides an end-to-end medical research data pipeline:
 
@@ -128,7 +174,7 @@ This system provides an end-to-end medical research data pipeline:
 - **Patient Similarity**: Find similar patients based on clinical profiles and filters
 - **Streamlit UI**: Interactive web interface for researchers and clinicians
 
-## 🛠️ Technical Architecture
+## Technical Architecture
 
 ### Infrastructure Components
 - **Azure Kubernetes Service (AKS)**: Container orchestration platform
@@ -150,7 +196,33 @@ This system provides an end-to-end medical research data pipeline:
 - **Embedding Models**: Medical BERT (`pritamdeka/S-PubMedBert-MS-MARCO`) for domain-specific understanding
 - **Custom Docker Image**: Extends Apache Airflow with medical data processing libraries (biopython, sentence-transformers, weaviate-client)
 
-## 🚀 Getting Started with the Medical RAG System
+## Configuration
+
+### Terraform Variables
+
+Key configuration options in `terraform_module/variables.tf`:
+
+- `resource_group_name`: Azure resource group name (default: "tfm-brayanto")
+- `location`: Azure region (default: "eastus")  
+- `node_vm_size`: AKS node VM size (default: "Standard_B4ms")
+- `node_count`: Number of AKS nodes (default: 2)
+- `deploy_weaviate`: Deploy Weaviate database (default: true)
+- `enable_app_gateway`: Enable Application Gateway (default: false)
+- `ssh_private_key`: SSH key for private Git repos (sensitive)
+
+### Environment Variables
+
+**Airflow DAGs Configuration:**
+- `WEAVIATE_URL`: Weaviate endpoint (default: cluster-internal)
+- `WEAVIATE_API_KEY`: Optional authentication key
+
+**RAG Agent Configuration:**
+- `WEAVIATE_URL`: Weaviate connection URL
+- `WEAVIATE_GRPC_PORT`: gRPC port (default: 50051)
+- `EMBEDDING_MODEL`: Medical embedding model
+- LLM provider keys (OPENAI_API_KEY, AZURE_OPENAI_*, OLLAMA_URL)
+
+## Getting Started with the Medical RAG System
 
 ### 1. Deploy Infrastructure
 ```bash
@@ -182,16 +254,51 @@ helm upgrade --install weaviate weaviate/weaviate \
 ### 4. Start RAG Agent
 ```bash
 cd Agent
+
+# Install Python dependencies
+pip install streamlit weaviate-client sentence-transformers openai
+
+# Set environment variables (choose your LLM provider)
+export WEAVIATE_URL="http://localhost:9090"
+export OPENAI_API_KEY="your-openai-key"
+# OR for Azure OpenAI:
+# export AZURE_OPENAI_API_KEY="your-azure-key"
+# export AZURE_OPENAI_ENDPOINT="https://your-endpoint.openai.azure.com/"
+# OR for local Ollama:
+# export OLLAMA_URL="http://localhost:11434"
+
+# Start the Streamlit application
 streamlit run agent.py
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
-- **DAG Import Errors**: Check Python package installations in Airflow pods
-- **Weaviate Connection**: Verify service discovery and network policies
-- **Memory Issues**: Adjust resource limits in Helm values
-- **Embedding Model Loading**: Ensure sufficient disk space for model downloads
+
+**DAG Import Errors:**
+- Check Python package installations in Airflow pods
+- Verify custom Docker image is being used
+- Check logs: `kubectl logs deployment/airflow-scheduler -n airflow`
+
+**Weaviate Connection Issues:**
+- Verify service discovery and network policies
+- Check Weaviate pod status: `kubectl get pods -n weaviate`
+- Test connection: `curl http://localhost:9090/v1/meta` (via port-forward)
+
+**Memory and Resource Issues:**
+- Adjust resource limits in Helm values files
+- Monitor resource usage: `kubectl top pods -n airflow`
+- Scale AKS nodes if needed
+
+**Embedding Model Loading:**
+- Ensure sufficient disk space for model downloads (2GB+ for medical BERT)
+- Check pod startup logs for download progress
+- Consider pre-caching models in custom Docker image
+
+**Git Sync Issues (Private Repos):**
+- Verify SSH private key is correctly configured
+- Check known_hosts configuration in Terraform
+- Monitor git-sync container logs
 
 ### Reset Commands
 ```bash
@@ -207,7 +314,7 @@ kubectl delete namespace weaviate
 terraform destroy
 ```
 
-## 📚 Documentation and Resources
+## Documentation and Resources
 
 ### Medical AI and NLP
 - [PubMed API Documentation](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
@@ -219,7 +326,7 @@ terraform destroy
 - [Airflow Kubernetes Operator](https://airflow.apache.org/docs/apache-airflow-providers-kubernetes/stable/)
 - [Helm Chart Best Practices](https://helm.sh/docs/chart_best_practices/)
 
-## 🔧 Services and Components
+## Services and Components
 
 ### Core Infrastructure
 - **Azure Kubernetes Service (AKS)** - Container orchestration
@@ -241,7 +348,7 @@ terraform destroy
 - **Airflow Logs** - Centralized logging with medical data audit trails
 - **Application Gateway** - Secure access and load balancing
 
-## 🛠️ Useful Commands
+## Useful Commands
 
 ### Infrastructure Management
 ```bash
@@ -286,7 +393,7 @@ curl -X POST http://localhost:9090/v1/graphql \
   -d '{"query":"{ Get { MedicalResearch(nearText:{concepts:[\"diabetes\"]}, limit:5) { title abstract } } }"}'
 ```
 
-## 📊 Monitoring and Observability
+## Monitoring and Observability
 
 ### Access Points
 - **Airflow UI**: https://your-gateway-url/airflow (Azure) or http://localhost:8080 (local)
@@ -300,7 +407,7 @@ curl -X POST http://localhost:9090/v1/graphql \
 - **Query Response Time**: RAG system performance metrics
 - **Resource Utilization**: AKS cluster CPU, memory, and storage usage
 
-## 🔐 Security and Compliance
+## Security and Compliance
 
 ### Authentication and Access Control
 - **Azure AD Integration**: Role-based access control for AKS
@@ -314,7 +421,7 @@ curl -X POST http://localhost:9090/v1/graphql \
 - **Access Logging**: Comprehensive audit trails for data access
 - **Data Anonymization**: PII removal and clinical data de-identification
 
-## 🧬 Medical Use Cases
+## Medical Use Cases
 
 ### Supported Research Workflows
 1. **Literature Review**: Semantic search across PubMed database
