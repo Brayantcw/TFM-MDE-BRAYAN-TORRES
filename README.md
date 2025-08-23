@@ -71,35 +71,170 @@ This will create:
 ### Local Installation (Development)
 
 For local development with Docker Desktop Kubernetes:
+
 ```bash
+# Navigate to installation directory
 cd Local_installation_files
+
+# Run the automated installation script
 ./install-airflow.sh
 ```
 
+**What the script does:**
+1. **Prerequisites Check**: Verifies kubectl, helm, and Kubernetes cluster access
+2. **Namespace Setup**: Creates `airflow` and `weaviate` namespaces
+3. **Storage Preparation**: Applies Kubernetes PV/PVC configurations from `k8s/` directory
+4. **Helm Repositories**: Adds Apache Airflow and Weaviate Helm repositories
+5. **Service Deployment**: 
+   - Installs Weaviate vector database using `weaviate-values.yaml`
+   - Installs Apache Airflow using `values.yaml`
+6. **Health Verification**: Waits for all pods to be ready (up to 5 minutes per service)
+7. **Port-Forward Script**: Generates intelligent `port-forward.sh` script for service access
+
+**Requirements:**
+- Docker Desktop with Kubernetes enabled
+- kubectl configured for `docker-desktop` context
+- Helm 3.0+ installed
+- At least 4GB available RAM for the services
+
 ### Service Access
 
-After successful deployment, access the services:
+**Automated Port-Forwarding (Local Development):**
 
-**Airflow Web UI:**
-- Azure: Through Application Gateway (when enabled)
-- Local: http://localhost:8080 (run `./port-forward.sh` from Local_installation_files)
-- Default credentials: `admin/admin`
+The installation script creates an intelligent `port-forward.sh` script that manages all service access:
 
-**Weaviate Vector Database:**
-- Azure: Internal cluster access via port-forward
-- Local: http://localhost:9090 (via port-forward)
-
-**Medical RAG Agent:**
-- Local: http://localhost:8501 (after running `streamlit run agent.py`)
-
-**Port Forwarding for Local Access:**
 ```bash
-# Airflow UI
-kubectl port-forward svc/airflow-webserver 8080:8080 -n airflow
+# Start all port-forwards in background (recommended)
+./port-forward.sh start
 
-# Weaviate Console
-kubectl port-forward svc/weaviate 9090:8080 -n weaviate
+# Check current status
+./port-forward.sh status
+
+# Stop all port-forwards
+./port-forward.sh stop
+
+# Restart all services
+./port-forward.sh restart
 ```
+
+**Service Endpoints:**
+- **Airflow Web UI**: http://localhost:8080 
+  - Credentials: `admin/admin`
+  - Automatically detects `airflow-webserver` or `airflow-api-server` services
+- **Weaviate REST API**: http://localhost:9090
+  - Vector database queries and schema management
+- **Weaviate gRPC**: localhost:50051
+  - High-performance client connections
+- **Medical RAG Agent**: http://localhost:8501 (after running `streamlit run agent.py`)
+
+**Azure Deployment Access:**
+- **Airflow UI**: Through Application Gateway (when `enable_app_gateway = true`)
+- **Weaviate**: Internal cluster access via kubectl port-forward
+- **Services**: Use the same port-forward.sh script with proper kubectl context
+
+**Port-Forward Features:**
+- **Detached Operation**: All processes run in background, no terminal blocking
+- **Process Management**: Automatic PID tracking and cleanup
+- **Health Monitoring**: Detects and restarts failed connections
+- **Logging**: Individual log files in `./logs/` directory for debugging
+- **Smart Detection**: Automatically finds correct service names
+
+## Local Development Workflow
+
+### Complete Setup Process
+
+1. **Initial Installation:**
+   ```bash
+   cd Local_installation_files
+   ./install-airflow.sh
+   ```
+
+2. **Start Services:**
+   ```bash
+   ./port-forward.sh start
+   ```
+
+3. **Verify Installation:**
+   ```bash
+   ./port-forward.sh status
+   ```
+   Should show all three services running with PIDs.
+
+4. **Access Services:**
+   - Open http://localhost:8080 for Airflow UI (admin/admin)
+   - Open http://localhost:9090 for Weaviate Console
+   - Test gRPC connection to localhost:50051 from your applications
+
+### Development Commands
+
+**Service Management:**
+```bash
+./port-forward.sh restart    # Restart all port-forwards
+./port-forward.sh stop       # Stop all port-forwards
+kubectl get pods -A          # Check pod status across all namespaces
+```
+
+**Debugging and Logs:**
+```bash
+# View port-forward logs
+ls -la logs/                 # List all log files
+tail -f logs/weaviate-port-forward.log    # Watch Weaviate connection logs
+
+# Check service health
+kubectl get pods -n airflow
+kubectl get pods -n weaviate
+
+# View application logs
+kubectl logs deployment/airflow-scheduler -n airflow
+kubectl logs deployment/weaviate -n weaviate
+```
+
+**Data Pipeline Operations:**
+```bash
+# Trigger DAGs (requires port-forwarding active)
+# Access Airflow UI at localhost:8080, then trigger:
+# - medical_research_ingestion_v2
+# - synthetic_patient_data_ingestion_v2  
+# - medical_research_validation_v2
+# - synthetic_patient_data_validation_v1
+```
+
+### Troubleshooting Local Installation
+
+**Common Issues:**
+
+1. **Port-forward fails to start:**
+   ```bash
+   # Check if ports are already in use
+   netstat -an | grep -E "(8080|9090|50051)"
+   
+   # Kill processes using the ports
+   lsof -ti:8080 | xargs kill -9
+   ./port-forward.sh start
+   ```
+
+2. **Services not ready:**
+   ```bash
+   # Check pod status
+   kubectl get pods -n airflow -w
+   kubectl get pods -n weaviate -w
+   
+   # Check events for issues
+   kubectl get events -n airflow --sort-by='.lastTimestamp'
+   ```
+
+3. **Installation script fails:**
+   ```bash
+   # Verify Docker Desktop Kubernetes is running
+   kubectl cluster-info
+   
+   # Check Helm
+   helm version
+   
+   # Re-run with verbose output
+   set -x
+   ./install-airflow.sh
+   ```
 
 ---
 
@@ -127,7 +262,7 @@ tfm/
 │   ├── values.yaml               # Helm values for Airflow
 │   ├── weaviate-values.yaml      # Helm values for Weaviate
 │   ├── k8s/                      # Kubernetes manifests (PV/PVC configs)
-│   └── port-forward.sh           # Port forwarding script for local access
+│   └── port-forward.sh           # Automated port-forwarding with background processes
 ├── docker_image/                 # Custom Airflow Docker image
 │   ├── dockerfile                # Dockerfile for Airflow with medical packages
 │   └── requirements.txt          # Python dependencies (fastembed, weaviate-client, etc.)
@@ -381,8 +516,8 @@ kubectl logs -f deployment/airflow-scheduler -n airflow
 
 ### Weaviate Operations
 ```bash
-# Port forward to access Weaviate locally
-kubectl -n weaviate port-forward svc/weaviate 9090:8080
+# Use automated port-forwarding (recommended)
+./port-forward.sh start
 
 # Check collection status
 curl http://localhost:9090/v1/schema
@@ -391,12 +526,15 @@ curl http://localhost:9090/v1/schema
 curl -X POST http://localhost:9090/v1/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ Get { MedicalResearch(nearText:{concepts:[\"diabetes\"]}, limit:5) { title abstract } } }"}'
+
+# Manual port-forward (if needed)
+kubectl -n weaviate port-forward svc/weaviate 9090:8080
 ```
 
 ## Monitoring and Observability
 
 ### Access Points
-- **Airflow UI**: https://your-gateway-url/airflow (Azure) or http://localhost:8080 (local)
+- **Airflow UI**: https://your-gateway-url/airflow (Azure) or http://localhost:8080 (local via port-forward.sh)
 - **Weaviate Console**: http://localhost:9090 (via port-forward)
 - **Medical RAG Agent**: http://localhost:8501 (Streamlit)
 - **Kubernetes Dashboard**: Available through Azure portal
