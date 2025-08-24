@@ -70,6 +70,7 @@ resource "azurerm_subnet" "aks_subnet" {
 }
 
 resource "azurerm_subnet" "app_gateway_subnet" {
+  count                = var.enable_app_gateway ? 1 : 0
   address_prefixes     = ["10.52.1.0/24"]
   name                 = "${random_id.prefix.hex}-appgw-sn"
   resource_group_name  = azurerm_resource_group.rg.name
@@ -77,6 +78,7 @@ resource "azurerm_subnet" "app_gateway_subnet" {
 }
 
 resource "azurerm_public_ip" "app_gateway_pip" {
+  count               = var.enable_app_gateway ? 1 : 0
   allocation_method   = "Static"
   location            = azurerm_resource_group.rg.location
   name                = "${random_id.prefix.hex}-appgw-pip"
@@ -86,6 +88,7 @@ resource "azurerm_public_ip" "app_gateway_pip" {
 }
 
 resource "azurerm_application_gateway" "app_gateway" {
+  count               = var.enable_app_gateway ? 1 : 0
   location            = azurerm_resource_group.rg.location
   name                = "${random_id.prefix.hex}-appgw"
   resource_group_name = azurerm_resource_group.rg.name
@@ -98,7 +101,7 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   gateway_ip_configuration {
     name      = "appGatewayIpConfig"
-    subnet_id = azurerm_subnet.app_gateway_subnet.id
+    subnet_id = azurerm_subnet.app_gateway_subnet[0].id
   }
 
   frontend_port {
@@ -108,7 +111,7 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   frontend_ip_configuration {
     name                 = "appGwPublicFrontendIp"
-    public_ip_address_id = azurerm_public_ip.app_gateway_pip.id
+    public_ip_address_id = azurerm_public_ip.app_gateway_pip[0].id
   }
 
   backend_address_pool {
@@ -166,19 +169,43 @@ module "aks" {
   os_disk_size_gb     = var.os_disk_size_gb
 
   # Ingress configuration
-  enable_ingress = true
-  app_gateway_id = azurerm_application_gateway.app_gateway.id
+  enable_ingress = var.enable_app_gateway
+  app_gateway_id = var.enable_app_gateway ? azurerm_application_gateway.app_gateway[0].id : null
 
   depends_on = [azurerm_application_gateway.app_gateway]
 }
 
 module "helm_apps" {
+  count  = var.deploy_validation_apps ? 1 : 0
   source = "./modules/helm-app"
 
   namespace       = "test-apps"
   app_name        = "nginx-demo"
   ingress_enabled = false
   replicas        = 2
+
+  depends_on = [module.aks]
+}
+
+module "weaviate" {
+  count         = var.deploy_weaviate ? 1 : 0
+  source        = "./modules/weaviate"
+  namespace     = "weaviate"
+  release_name  = "weaviate"
+  chart_version = "17.4.5"
+  image_tag     = "1.31.5"
+  pull_policy   = "IfNotPresent"
+  storage_size  = "2Gi"
+  resource_limits = {
+    cpu    = "1"
+    memory = "2Gi"
+  }
+  resource_requests = {
+    cpu    = "500m"
+    memory = "1Gi"
+  }
+  enable_anonymous_access = true
+  enable_ingress          = false
 
   depends_on = [module.aks]
 }
@@ -191,8 +218,8 @@ module "airflow" {
   chart_version = "1.18.0"
 
   custom_image = {
-    repository = "ghcr.io/brayantcw/airflow-custom"
-    tag        = "latest"
+    repository = "masterbt77/airflow-custom"
+    tag        = "v1.0.4"
     pullPolicy = "IfNotPresent"
   }
 
@@ -208,5 +235,17 @@ module "airflow" {
   logs_storage_size    = "5Gi"
   plugins_storage_size = "1Gi"
 
-  depends_on = [module.aks]
+  # Git sync configuration
+  enable_git_sync  = true
+  git_repo_url     = "git@github.com:Brayantcw/tfm.git"
+  git_branch       = "dev-airflow-base"
+  git_dags_subpath = "dags"
+  git_sync_wait    = 60
+  git_sync_timeout = 120
+
+  # SSH authentication for private repo
+  enable_ssh_auth = true
+  ssh_private_key = var.ssh_private_key
+  ssh_known_hosts = "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+  depends_on      = [module.aks]
 }

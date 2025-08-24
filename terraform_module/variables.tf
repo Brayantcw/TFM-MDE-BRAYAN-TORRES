@@ -25,7 +25,7 @@ variable "cluster_prefix" {
 variable "node_vm_size" {
   description = "Size of the AKS node VMs"
   type        = string
-  default     = "Standard_B2s" # Low-cost burstable SKU
+  default     = "Standard_B4ms" # Low-cost burstable SKU
 }
 
 variable "node_count" {
@@ -38,4 +38,29 @@ variable "os_disk_size_gb" {
   description = "OS disk size per node"
   type        = number
   default     = 30
+}
+
+variable "deploy_validation_apps" {
+  description = "Whether to deploy validation helm apps for cluster functionality testing"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_weaviate" {
+  description = "Whether to deploy Weaviate vector database"
+  type        = bool
+  default     = true
+}
+
+variable "ssh_private_key" {
+  description = "SSH private key for GitHub repository access (for private repos)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "enable_app_gateway" {
+  description = "Whether to create Application Gateway for ingress"
+  type        = bool
+  default     = false
 }

@@ -1,0 +1,53 @@
+# 1. Base image: Airflow 3.0.2 on Python 3.9
+FROM apache/airflow:3.0.2-python3.9
+
+# 2. Build-time args for the matching constraints URL
+ARG AIRFLOW_VERSION=3.0.2
+ARG CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.9.txt"
+
+# 3. Install OS-level deps as root (optimized with cleanup)
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      git \
+      curl \
+      libpq-dev \
+      default-libmysqlclient-dev \
+      libssl-dev \
+      libffi-dev \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 4. Switch to the airflow user for Python installs
+USER airflow
+
+# 5. Upgrade pip for better dependency resolution
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# 6. Copy requirements with proper ownership (better layer caching)
+COPY --chown=airflow:root requirements.txt /tmp/requirements.txt
+
+# 7. Install Python packages with constraints and cleanup
+RUN pip install \
+      --no-cache-dir \
+      -r /tmp/requirements.txt \
+      --constraint "${CONSTRAINT_URL}" \
+    && pip check \
+    && rm -f /tmp/requirements.txt
+
+# 8. Add health check for container monitoring
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# 9. Set working directory explicitly
+WORKDIR /opt/airflow
+
+# 10. Add metadata labels following OCI standards
+LABEL org.opencontainers.image.title="Custom Airflow" \
+      org.opencontainers.image.description="Apache Airflow with fastembed, weaviate-client, and ipython" \
+      org.opencontainers.image.version="${AIRFLOW_VERSION}" \
+      org.opencontainers.image.vendor="masterbt77" \
+      org.opencontainers.image.source="https://github.com/Brayantcw/tfm" \
+      org.opencontainers.image.documentation="https://github.com/Brayantcw/tfm/README.md"

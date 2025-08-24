@@ -1,10 +1,6 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches: [ main, dev-* ]
-    paths:
-      - 'Local_installation_files/docker_image/**'
   workflow_dispatch:
     inputs:
       version:
@@ -14,12 +10,13 @@ on:
         type: string
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: brayantcw/airflow-custom
+  REGISTRY: docker.io
+  IMAGE_NAME: masterbt77/airflow-custom
 
 permissions:
   contents: read
   packages: write
+  security-events: write
 
 jobs:
   build-and-push:
@@ -32,18 +29,17 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Container Registry
+    - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: ${{ env.IMAGE_NAME }}
         tags: |
           type=ref,event=branch
           type=raw,value=latest,enable={{is_default_branch}}
@@ -58,10 +54,11 @@ jobs:
           org.opencontainers.image.version=${{ github.event.inputs.version || 'latest' }}
 
     - name: Build and push Docker image
+      id: build
       uses: docker/build-push-action@v5
       with:
-        context: ./Local_installation_files/docker_image
-        file: ./Local_installation_files/docker_image/dockerfile
+        context: ./docker_image
+        file: ./docker_image/dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
@@ -74,18 +71,11 @@ jobs:
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+        image-ref: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+        format: 'table'
 
     - name: Output image details
       run: |
-        echo "Image pushed to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+        echo "Image pushed to: ${{ env.IMAGE_NAME }}"
         echo "Tags: ${{ steps.meta.outputs.tags }}"
         echo "Digest: ${{ steps.build.outputs.digest }}"

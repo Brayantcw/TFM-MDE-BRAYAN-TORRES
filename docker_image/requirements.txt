@@ -1,0 +1,8 @@
+# requirements.txt
+ipython
+fastembed
+weaviate-client
+# Healthcare data pipeline packages
+biopython==1.81                    # For PubMed/NCBI access
+sentence-transformers==2.3.0      # For medical embeddings
+

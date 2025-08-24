@@ -4,6 +4,7 @@ resource "kubernetes_namespace" "airflow" {
   }
 }
 
+
 resource "kubernetes_storage_class" "airflow" {
   metadata {
     name = "airflow-storage"
@@ -87,29 +88,13 @@ resource "helm_release" "airflow" {
     yamlencode({
       images = {
         airflow = {
-          repository = "apache/airflow"
+          repository = "masterbt77/airflow-custom"
+          tag        = "v1.0.1"
           pullPolicy = "IfNotPresent"
         }
       }
 
 
-      extraInitContainers = [
-        {
-          name    = "install-requirements"
-          image   = "apache/airflow"
-          command = ["/bin/bash"]
-          args = [
-            "-c",
-            "pip install --no-cache-dir ipython fastembed weaviate-client --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.0.2/constraints-3.9.txt"
-          ]
-          volumeMounts = [
-            {
-              name      = "airflow-home"
-              mountPath = "/opt/airflow"
-            }
-          ]
-        }
-      ]
 
       executor = "LocalExecutor"
 
@@ -133,22 +118,26 @@ resource "helm_release" "airflow" {
       }
 
       ingress = {
-        enabled = var.ingress_enabled
+        enabled = false
         web = {
-          enabled          = var.ingress_enabled
-          ingressClassName = "azure-application-gateway"
-          path             = "/airflow"
-          pathType         = "Prefix"
-          annotations = {
-            "kubernetes.io/ingress.class" = "azure/application-gateway"
-          }
+          enabled = false
         }
       }
 
       dags = {
         persistence = {
-          enabled       = true
-          existingClaim = kubernetes_persistent_volume_claim.dags.metadata[0].name
+          enabled       = var.enable_git_sync ? false : true
+          existingClaim = var.enable_git_sync ? null : kubernetes_persistent_volume_claim.dags.metadata[0].name
+        }
+        gitSync = {
+          enabled     = var.enable_ssh_auth
+          repo        = var.git_repo_url
+          branch      = var.git_branch
+          subPath     = var.git_dags_subpath
+          depth       = 1
+          maxFailures = 0
+          sshKey      = var.enable_ssh_auth ? var.ssh_private_key : null
+          knownHosts  = var.enable_ssh_auth ? var.ssh_known_hosts : null
         }
       }
 
@@ -192,11 +181,11 @@ resource "helm_release" "airflow" {
       resources = {
         limits = {
           cpu    = "1000m"
-          memory = "2Gi"
+          memory = "8Gi"
         }
         requests = {
           cpu    = "500m"
-          memory = "1Gi"
+          memory = "4Gi"
         }
       }
     })
@@ -215,7 +204,8 @@ resource "helm_release" "airflow" {
 resource "kubernetes_ingress_v1" "airflow_api" {
   metadata {
     annotations = {
-      "kubernetes.io/ingress.class" = "azure/application-gateway"
+      "kubernetes.io/ingress.class"                     = "azure/application-gateway"
+      "appgw.ingress.kubernetes.io/backend-path-prefix" = "/"
     }
     name      = "airflow-api-ingress"
     namespace = kubernetes_namespace.airflow.metadata[0].name
@@ -224,12 +214,12 @@ resource "kubernetes_ingress_v1" "airflow_api" {
     rule {
       http {
         path {
-          path      = "/airflow"
+          path      = "/"
           path_type = "Prefix"
 
           backend {
             service {
-              name = "${var.release_name}-webserver"
+              name = "airflow-api-server"
 
               port {
                 number = 8080
@@ -240,6 +230,5 @@ resource "kubernetes_ingress_v1" "airflow_api" {
       }
     }
   }
-
   depends_on = [helm_release.airflow]
 }
