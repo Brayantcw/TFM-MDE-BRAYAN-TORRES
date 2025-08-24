@@ -1,5 +1,7 @@
 # Medical Research Data Pipeline and RAG System
 
+![Architecture Diagram](media/Arquitectura.png)
+
 This repository implements a comprehensive medical research data pipeline that combines Apache Airflow workflow orchestration, Weaviate vector database, and AI-powered retrieval-augmented generation (RAG) to enable advanced medical research and patient similarity analysis.
 
 ## Overview
