@@ -127,5 +127,5 @@ variable "ssh_private_key" {
 variable "ssh_known_hosts" {
   description = "SSH known hosts content for Git authentication"
   type        = string
-  default     = "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8BUGLN7j6dDDVJtdf86LsWxB+eXi+xALV4pjO9VGQ8r8MzPHsqE7Qj/Gc="
-}
+  default     = "github.com ssh-rsa YOUR_KEY_HERE"
+  sensitive   = true

@@ -1,14 +1,16 @@
 """
-Medical RAG (BYOV) with Separate AI Layer
-- Papers: Weaviate retrieval (MedicalResearch) + pluggable LLM for answers
-- Similar Patients: Weaviate retrieval (DiabetesPatients) + instant LLM cohort summary
+Medical RAG with LM Studio Integration
+- Papers: Weaviate retrieval (MedicalResearch) + LM Studio for answers
+- Similar Patients: Weaviate retrieval (DiabetesPatients) + LM Studio cohort summary + Treatment Audit
 """
 
 import os
 import re
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
+from dataclasses import dataclass
 
+import requests
 import streamlit as st
 import weaviate
 import weaviate.classes as wvc
@@ -20,14 +22,47 @@ from sentence_transformers import SentenceTransformer
 # Utils
 # ---------------------------
 def strip_reasoning(text: str) -> str:
-    """Remove hidden chain-of-thought (<think>...</think>) and clean whitespace."""
+    """Remove hidden chain-of-thought and thinking patterns."""
     if not text:
         return ""
-    # Remove <think> ... </think>
+    # Remove <think> tags
     text = re.sub(r"(?is)<\s*think\s*>.*?<\s*/\s*think\s*>", "", text)
-    # Remove any stray tags
     text = re.sub(r"(?is)<\s*/?\s*think\s*>", "", text)
+    # Remove common thinking patterns at the start
+    thinking_patterns = [
+        r"(?is)^(okay|alright|so|let me|let's|first|i need to|i'll).*?(?=\[BEGIN|Based on|According to|\n\n)",
+        r"(?is)^.*?(checking|looking at|analyzing|reviewing).*?(?=\[BEGIN|Based on|According to|\n\n)",
+    ]
+    for pattern in thinking_patterns:
+        text = re.sub(pattern, "", text)
     return text.strip()
+
+
+def extract_final_answer(text: str) -> str:
+    """Extract content strictly between [BEGIN ANSWER] and [END ANSWER]."""
+    if not text:
+        return ""
+    patterns = [
+        r"(?is)\[BEGIN\s+ANSWER\](.*?)(?:\[END\s+ANSWER\]|$)",
+        r"(?is)\[BEGIN ANSWER\](.*?)(?:\[END ANSWER\]|$)",
+        r"(?is)BEGIN ANSWER:?\s*(.*?)(?:END ANSWER|$)",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, text)
+        if m:
+            answer = m.group(1).strip()
+            if answer and len(answer) > 20:
+                return answer
+    return ""
+
+
+def render_scrollable_markdown(title: str, content: str, key_prefix: str):
+    st.subheader(title)
+    if content and content.strip():
+        st.code(content, language="markdown")
+        st.download_button(f"Download (.md)", content, file_name=f"{key_prefix}.md", key=f"dl_{key_prefix}")
+    else:
+        st.caption("No content.")
 
 
 # ---------------------------
@@ -48,57 +83,203 @@ class SimpleReranker:
 
 
 # ---------------------------
-# LLM Answerer (separate AI layer) — robust Ollama
+# Treatment audit (rule-based heuristics, not medical advice)
 # ---------------------------
-class LLLMError(Exception):
-    pass
+@dataclass
+class AuditResult:
+    status: str              # "ok" | "missing_indication" | "caution" | "contra"
+    reasons: List[str]
+    positives: List[str]
+    negatives: List[str]
+
+class TreatmentAuditor:
+    # Add common brand names (lowercased)
+    SGLT2 = {
+        "empagliflozin","dapagliflozin","canagliflozin","ertugliflozin",
+        "jardiance","farxiga","invokana","steglatro"
+    }
+    GLP1  = {
+        "semaglutide","liraglutide","dulaglutide","exenatide","lixisenatide","tirzepatide",
+        "ozempic","rybelsus","wegovy","trulicity","victoza","byetta","bydureon","lyxumia","mounjaro","zepbound"
+    }
+    MET   = {"metformin","glucophage"}
+    TZD   = {"pioglitazone","rosiglitazone","actos","avandia"}
+    SU    = {"glimepiride","glipizide","glyburide","glibenclamide","gliclazide"}
+    DPP4  = {"sitagliptin","saxagliptin","linagliptin","alogliptin","januvia","onglyza","tradjenta","nesina"}
+
+    ASCVD_KEYS = {"ascvd","cad","coronary","mi","myocardial infarction","stroke","cva","tia","pad","peripheral artery"}
+    HF_KEYS    = {"hf","hfrEF".lower(),"hfpef","heart failure"}
+    CKD_KEYS   = {"ckd","nephropathy","albuminuria","proteinuria","esrd","dialysis","kidney disease"}
+    RET_KEYS   = {"retinopathy","pdr","proliferative retinopathy"}
+
+    def __init__(self, elderly_age: int = 75):
+        self.elderly_age = elderly_age
+        self._rank = {"ok":0, "missing_indication":1, "caution":2, "contra":3}
+
+    @staticmethod
+    def _norm_list(xs):
+        return [str(x).strip().lower() for x in (xs or []) if x is not None]
+
+    @staticmethod
+    def _has_any(text: str, keys: set) -> bool:
+        t = (text or "").lower()
+        return any(k in t for k in keys)
+
+    def _has_comorb(self, patient: dict, keys: set) -> bool:
+        comps = self._norm_list(patient.get("complications", []))
+        if any(self._has_any(c, keys) for c in comps):
+            return True
+        return self._has_any(patient.get("clinical_summary",""), keys)
+
+    def _has_med_from(self, meds_norm: List[str], bag: set) -> bool:
+        return any(m in bag or any(m.startswith(x) or x in m for x in bag) for m in meds_norm)
+
+    def audit_patient(self, p: dict) -> AuditResult:
+        reasons, positives, negatives = [], [], []
+        worst = "ok"
+
+        try: age = int(float(p.get("age") or 0))
+        except: age = 0
+        try: a1c = float(p.get("hba1c_current") or 0.0)
+        except: a1c = 0.0
+        try: egfr = float(p.get("egfr") or 0.0)
+        except: egfr = 0.0
+        meds  = self._norm_list(p.get("medications", []))
+
+        has_sglt2 = self._has_med_from(meds, self.SGLT2)
+        has_glp1  = self._has_med_from(meds, self.GLP1)
+        has_met   = self._has_med_from(meds, self.MET)
+        has_tzd   = self._has_med_from(meds, self.TZD)
+        has_su    = self._has_med_from(meds, self.SU)
+
+        has_ckd = (egfr and egfr <= 60) or self._has_comorb(p, self.CKD_KEYS)
+        has_hf  = self._has_comorb(p, self.HF_KEYS)
+        has_ascvd = self._has_comorb(p, self.ASCVD_KEYS)
+        has_ret = self._has_comorb(p, self.RET_KEYS)
+
+        # Contraindications / strong cautions
+        if egfr and egfr < 30 and has_met:
+            negatives.append("Metformin with eGFR <30 (contraindication).")
+            worst = "contra"
+        elif 30 <= egfr < 45 and has_met:
+            negatives.append("Metformin with eGFR 30–44 (use lower dose/monitor).")
+            worst = "caution" if self._rank["caution"] > self._rank[worst] else worst
+
+        if has_hf and has_tzd:
+            negatives.append("TZD in heart failure (fluid retention risk).")
+            worst = "contra" if self._rank["contra"] > self._rank[worst] else worst
+
+        if age >= self.elderly_age and has_su:
+            negatives.append("Sulfonylurea in elderly (hypoglycemia risk).")
+            worst = "caution" if self._rank["caution"] > self._rank[worst] else worst
+
+        if has_ret and has_glp1 and ("semaglutide" in meds or "ozempic" in meds or "rybelsus" in meds or "wegovy" in meds):
+            negatives.append("Semaglutide + retinopathy: monitor for early worsening with rapid A1c drop.")
+            worst = "caution" if self._rank["caution"] > self._rank[worst] else worst
+
+        # Positive signals
+        if has_ckd and has_sglt2:
+            positives.append("CKD present and on SGLT2 inhibitor (renal/CV benefit signal).")
+        if has_hf and has_sglt2:
+            positives.append("HF present and on SGLT2 inhibitor (HF hospitalization reduction).")
+        if has_ascvd and (has_sglt2 or has_glp1):
+            positives.append("ASCVD present and on GLP-1 RA/SGLT2 (MACE benefit signal).")
+
+        # Missing indications
+        if has_ckd and not has_sglt2:
+            reasons.append("CKD without SGLT2 inhibitor (consider if not contraindicated).")
+            worst = "missing_indication" if self._rank["missing_indication"] > self._rank[worst] else worst
+
+        if has_hf and not has_sglt2:
+            reasons.append("HF without SGLT2 inhibitor (consider if not contraindicated).")
+            worst = "missing_indication" if self._rank["missing_indication"] > self._rank[worst] else worst
+
+        if has_ascvd and not (has_glp1 or has_sglt2):
+            reasons.append("ASCVD without GLP-1 RA/SGLT2 (consider if not contraindicated).")
+            worst = "missing_indication" if self._rank["missing_indication"] > self._rank[worst] else worst
+
+        if a1c >= 9 and not has_glp1 and not has_sglt2:
+            reasons.append("A1c ≥9% without potent add-on therapy flagged.")
+            worst = "missing_indication" if self._rank["missing_indication"] > self._rank[worst] else worst
+
+        details = []
+        if positives: details += [f"✔️ {s}" for s in positives]
+        if negatives: details += [f"⚠️ {s}" for s in negatives]
+        if reasons:   details += [f"🔎 {s}" for s in reasons]
+        return AuditResult(status=worst, reasons=details, positives=positives, negatives=negatives)
+
+    def cohort_summary(self, cohort: List[dict]) -> dict:
+        counts = {"ok":0, "missing_indication":0, "caution":0, "contra":0}
+        pos = {"ckd+sglt2":0, "hf+sglt2":0, "ascvd+cv_agent":0}
+        neg = {"met_eGFR<30":0, "tzd_hf":0, "su_elderly":0}
+        per_patient = []
+        for p in cohort:
+            ar = self.audit_patient(p)
+            counts[ar.status] += 1
+            if any("CKD present and on SGLT2" in s for s in ar.positives): pos["ckd+sglt2"] += 1
+            if any("HF present and on SGLT2" in s for s in ar.positives):  pos["hf+sglt2"] += 1
+            if any("ASCVD present and on GLP-1 RA/SGLT2" in s for s in ar.positives): pos["ascvd+cv_agent"] += 1
+            if any("Metformin with eGFR <30" in s for s in ar.negatives): neg["met_eGFR<30"] += 1
+            if any("TZD in heart failure" in s for s in ar.negatives):     neg["tzd_hf"] += 1
+            if any("Sulfonylurea in elderly" in s for s in ar.negatives):  neg["su_elderly"] += 1
+            per_patient.append(ar)
+        return {"counts":counts, "positives":pos, "negatives":neg, "per_patient":per_patient}
 
 
-class LLMAnswerer:
+# ---------------------------
+# LM Studio Integration (OpenAI-compatible API) — ROBUST VERSION
+# ---------------------------
+class LMStudioClient:
     """
-    Pluggable generation backends: none | openai | azure | ollama
+    LM Studio client using OpenAI-compatible API.
+    More robust against template/stop issues:
+      - no custom stop strings by default
+      - fallback to system→user merge on template errors
+      - final fallback: simplified prompt without markers
     """
 
     def __init__(
         self,
-        provider: str = "none",
-        model: str = "gpt-4o-mini",
-        temperature: float = 0.1,
-        max_tokens: int = 800,
-        azure_api_version: str = "2024-02-15-preview",
-        azure_deployment: Optional[str] = None,
-        ollama_url: str = "http://localhost:11434",
-        show_raw: bool = False,  # debug toggle
+        base_url: str = "http://localhost:1234",
+        model: str = "biomistral-7b",  # prefer exact id from GET /v1/models
+        temperature: float = 0.2,
+        max_tokens: int = 2000,
+        show_raw: bool = False,
     ):
-        self.provider = provider.lower()
+        self.base_url = base_url.rstrip('/')
         self.model = model
         self.temperature = float(temperature)
         self.max_tokens = int(max_tokens)
-        self.azure_api_version = azure_api_version
-        self.azure_deployment = azure_deployment
-        self.ollama_url = ollama_url
-        self._openai_client = None
-        self._azure_client = None
         self.show_raw = show_raw
-        self._last_raw = ""  # for debug display
+        self._last_raw = ""
 
     @property
     def last_raw(self) -> str:
         return self._last_raw
 
+    def _merge_system_into_user(self, messages: List[Dict]) -> List[Dict]:
+        sys_parts = [m["content"] for m in messages if m.get("role") == "system" and m.get("content")]
+        sys_text = ("\n".join(sys_parts)).strip()
+        kept = [m for m in messages if m.get("role") != "system"]
+        if sys_text:
+            if kept and kept[0].get("role") == "user":
+                kept[0]["content"] = f"{sys_text}\n\n{kept[0]['content']}"
+            else:
+                kept.insert(0, {"role": "user", "content": sys_text})
+        return kept
+
     def _build_messages(self, question: str, patient_ctx: Optional[Dict], contexts: List[Dict]) -> List[Dict]:
-        # Works for papers (expects title/pmid/journal/abstract) OR patients (expects clinical_summary/patient_id)
         ctx_lines = []
         for i, d in enumerate(contexts, 1):
             if "pmid" in d:  # papers
                 pmid = d.get("pmid", "")
                 title = d.get("title", "")
                 journal = d.get("journal", "")
-                abstract = (d.get("abstract") or "")[:1400]
-                ctx_lines.append(f"[{i}] PMID:{pmid} | {title} — {journal}\n{abstract}\n")
+                abstract = (d.get("abstract") or "")[:600]
+                ctx_lines.append(f"[{i}] PMID:{pmid} | {title}\nJournal: {journal}\nAbstract: {abstract}\n")
             else:  # patients
                 pid = d.get("patient_id", "")
-                summary = (d.get("clinical_summary") or "")[:1400]
+                summary = (d.get("clinical_summary") or "")[:600]
                 ctx_lines.append(f"[{i}] PatientID:{pid}\n{summary}\n")
 
         patient = ""
@@ -110,171 +291,136 @@ class LLMAnswerer:
                 f"- Medications: {', '.join(patient_ctx.get('medications', []))}\n\n"
             )
 
-        system = (
-            "You are a clinical assistant. Use ONLY the provided context. "
-            "Cite papers with [PMID:XXXXXX] or patients with [PatientID:XXXXX]. "
-            "If evidence is weak or conflicting, say so explicitly."
-        )
-        user = (
-            f"{patient}"
-            f"Question: {question}\n\n"
-            "Sources:\n" + "\n".join(ctx_lines) +
-            "\nInstructions:\n"
-            "- Synthesize key findings.\n"
-            "- Call out contraindications/warnings.\n"
-            "- Provide 2–4 citations.\n"
-        )
+        system = """You are a medical assistant. Provide evidence-based answers using ONLY the given sources.
+Include citations like [PMID:12345] or [PatientID:ABC123]. Include any warnings or contraindications.
+"""
+
+        user = f"""{patient}Question: {question}
+
+Sources:
+{chr(10).join(ctx_lines)}
+
+Remember: Write your complete answer between [BEGIN ANSWER] and [END ANSWER] markers."""
+
         return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
-    # ---------- OpenAI ----------
-    def _generate_openai_raw(self, messages: List[Dict]) -> str:
-        from openai import OpenAI
-        if self._openai_client is None:
-            self._openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        resp = self._openai_client.chat.completions.create(
-            model=self.model,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            messages=messages,
+    def _post(self, payload: Dict) -> requests.Response:
+        return requests.post(
+            f"{self.base_url}/v1/chat/completions",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=180
         )
-        text = (resp.choices[0].message.content or "").strip()
-        self._last_raw = text
-        return text
 
-    # ---------- Azure OpenAI ----------
-    def _generate_azure_raw(self, messages: List[Dict]) -> str:
-        from openai import AzureOpenAI
-        if self._azure_client is None:
-            self._azure_client = AzureOpenAI(
-                api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                api_version=self.azure_api_version,
-            )
-        model = self.azure_deployment or self.model
-        resp = self._azure_client.chat.completions.create(
-            model=model,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            messages=messages,
-        )
-        text = (resp.choices[0].message.content or "").strip()
-        self._last_raw = text
-        return text
+    def _too_short(self, txt: str) -> bool:
+        if not txt:
+            return True
+        t = txt.strip()
+        if t in {"[BEGIN ANSWER]", " [BEGIN ANSWER]", "[BEGIN ANSWER]\n"}:
+            return True
+        return len(t) < 50
 
-    # ---------- Ollama: prefer /api/chat, fallback to /api/generate ----------
-    def _generate_ollama_chat_raw(self, messages: List[Dict]) -> str:
-        import requests
-        payload = {
-            "model": self.model,
-            "messages": messages,  # {role, content}
-            "stream": False,
-            "options": {
-                "temperature": self.temperature,
-                "num_predict": self.max_tokens,
-                "num_ctx": 8192,
-                # IMPORTANT: stop only on closing tag; do NOT stop on "<think>"
-                "stop": ["</think>"],
-            },
-        }
-        r = requests.post(f"{self.ollama_url}/api/chat", json=payload, timeout=180)
-        self._last_raw = r.text
-        r.raise_for_status()
-        data = r.json()
-        msg = ((data.get("message") or {}).get("content") or "").strip()
-
-        # Safety retry without stop tokens if empty
-        if not msg:
-            payload["options"].pop("stop", None)
-            r2 = requests.post(f"{self.ollama_url}/api/chat", json=payload, timeout=180)
-            self._last_raw = r2.text
-            r2.raise_for_status()
-            data2 = r2.json()
-            msg = ((data2.get("message") or {}).get("content") or "").strip()
-
-        if not msg:
-            raise LLLMError(f"Ollama /api/chat returned empty content. Body (first 400 chars): {self._last_raw[:400]}")
-        return msg
-
-    def _generate_ollama_generate_raw(self, messages: List[Dict]) -> str:
-        import requests
-        # Flatten roles for /api/generate
-        prompt = ""
-        for m in messages:
-            role = m.get("role", "user").upper()
-            content = m.get("content", "")
-            prompt += f"{role}:\n{content}\n\n"
-        if len(prompt) > 8000:
-            prompt = prompt[-8000:]
-
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": self.temperature,
-                "num_predict": self.max_tokens,
-                "num_ctx": 8192,
-                # IMPORTANT: stop only on closing tag
-                "stop": ["</think>"],
-            },
-        }
-        r = requests.post(f"{self.ollama_url}/api/generate", json=payload, timeout=180)
-        self._last_raw = r.text
-        r.raise_for_status()
-        data = r.json()
-        msg = (data.get("response") or "").strip()
-
-        # Safety retry without stop tokens if empty
-        if not msg:
-            payload["options"].pop("stop", None)
-            r2 = requests.post(f"{self.ollama_url}/api/generate", json=payload, timeout=180)
-            self._last_raw = r2.text
-            r2.raise_for_status()
-            data2 = r2.json()
-            msg = (data2.get("response") or "").strip()
-
-        if not msg:
-            raise LLLMError(f"Ollama /api/generate returned empty response. Body (first 400 chars): {self._last_raw[:400]}")
-        return msg
-
-    def _generate_ollama_raw(self, messages: List[Dict]) -> str:
-        # Try chat endpoint first, then fallback to generate
-        try:
-            raw = self._generate_ollama_chat_raw(messages)
-        except Exception:
-            raw = self._generate_ollama_generate_raw(messages)
-        return raw
-
-    # ---------- public ----------
     def generate_raw(self, question: str, patient_ctx: Optional[Dict], contexts: List[Dict]) -> str:
-        """Return the raw model output (may include <think>…</think>)."""
-        if self.provider == "none":
-            return ""
+        if not contexts:
+            return "No sources available to answer the question."
+
         messages = self._build_messages(question, patient_ctx, contexts)
-        if self.provider == "openai":
-            return self._generate_openai_raw(messages)
-        if self.provider == "azure":
-            return self._generate_azure_raw(messages)
-        if self.provider == "ollama":
-            return self._generate_ollama_raw(messages)
-        return ""
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": False
+        }
+
+        try:
+            resp = self._post(payload)
+            self._last_raw = resp.text
+
+            if resp.status_code == 400 and (
+                "Only user and assistant roles are supported" in resp.text
+                or "Error rendering prompt with jinja template" in resp.text
+            ):
+                messages2 = self._merge_system_into_user(messages)
+                payload["messages"] = messages2
+                resp = self._post(payload)
+                self._last_raw = resp.text
+
+            if resp.status_code == 200:
+                data = resp.json()
+                content = (data.get("choices", [{}])[0].get("message", {}) or {}).get("content", "") or ""
+                content = content.strip()
+
+                if self._too_short(content):
+                    sources_blob = ""
+                    for m in messages:
+                        if m.get("role") == "user":
+                            sources_blob = m.get("content", "")
+                            break
+                    simple_messages = [{
+                        "role": "user",
+                        "content": (
+                            "You are a medical assistant. Using ONLY the sources below, answer the question in 4–8 sentences "
+                            "with inline citations like [PMID:12345] or [PatientID:ABC123]. Include major contraindications.\n\n"
+                            f"{sources_blob}"
+                        )
+                    }]
+                    payload_simple = dict(payload, messages=simple_messages)
+                    resp2 = self._post(payload_simple)
+                    self._last_raw = resp2.text
+                    if resp2.status_code == 200:
+                        data2 = resp2.json()
+                        content2 = (data2.get("choices", [{}])[0].get("message", {}) or {}).get("content", "") or ""
+                        return content2.strip()
+                    else:
+                        raise Exception(f"LM Studio returned status {resp2.status_code}: {resp2.text[:500]}")
+
+                return content
+
+            raise Exception(f"LM Studio returned status {resp.status_code}: {resp.text[:500]}")
+
+        except requests.exceptions.ConnectionError:
+            raise Exception(
+                f"Cannot connect to LM Studio at {self.base_url}. "
+                f"Ensure the Local Server is running, port matches, and a model is loaded."
+            )
+        except Exception as e:
+            if "LM Studio" not in str(e):
+                raise Exception(f"LM Studio error: {str(e)}")
+            raise
 
     def generate(self, question: str, patient_ctx: Optional[Dict], contexts: List[Dict]) -> str:
-        """Return cleaned model output (reasoning stripped)."""
         raw = self.generate_raw(question, patient_ctx, contexts)
-        cleaned = strip_reasoning(raw)
-        return cleaned or raw
+        final = extract_final_answer(raw)
+        if not final or len(final) < 20:
+            cleaned = strip_reasoning(raw)
+            final = extract_final_answer(cleaned)
+            if not final or len(final) < 20:
+                citation_pattern = r"[^.]*\[(?:PMID|PatientID):[^\]]+\][^.]*\."
+                citations = re.findall(citation_pattern, raw, re.IGNORECASE)
+                final = " ".join(citations[:4]) if citations else (cleaned[:600] or raw[:600])
+        return final
+
+    def test_connection(self) -> bool:
+        try:
+            r = requests.get(f"{self.base_url}/v1/models", timeout=5)
+            if r.status_code == 200:
+                return True
+            r = requests.get(f"{self.base_url}/", timeout=5)
+            return r.status_code == 200
+        except:
+            return False
 
 
 # ---------------------------
-# Weaviate Agents
+# Weaviate RAG Agent
 # ---------------------------
 class WeaviateRAGAgent:
-    """MedicalResearch (papers) + DiabetesPatients (similar patients)"""
+    """MedicalResearch (papers) + DiabetesPatients (similar patients)."""
 
     def __init__(
         self,
-        weaviate_url: str = "http://localhost:8080",
+        weaviate_url: str = "http://localhost:9090",
         grpc_port: int = 50051,
         embedding_model: str = "pritamdeka/S-PubMedBert-MS-MARCO",
         skip_init_checks: bool = False,
@@ -311,7 +457,6 @@ class WeaviateRAGAgent:
         self.patients_col = self.client.collections.get("DiabetesPatients")
         self.embedder = SentenceTransformer(embedding_model)
 
-    # ----- shared helpers -----
     def _score_from_meta(self, meta) -> float:
         if meta is None:
             return 0.0
@@ -320,7 +465,7 @@ class WeaviateRAGAgent:
         if getattr(meta, "distance", None) is not None:
             try:
                 return 1.0 - float(meta.distance)
-            except Exception:
+            except:
                 return 0.0
         if getattr(meta, "certainty", None) is not None:
             return float(meta.certainty)
@@ -333,7 +478,6 @@ class WeaviateRAGAgent:
             self._reranker = SimpleReranker(self._reranker_name)
         return self._reranker.rerank(query, docs, k)
 
-    # ----- papers -----
     def retrieve_papers(self, question: str, num_results: int = 5, mode: str = "hybrid", alpha: Optional[float] = 0.7) -> List[Dict]:
         qvec = self.embedder.encode(question).tolist()
 
@@ -366,18 +510,15 @@ class WeaviateRAGAgent:
         for obj in getattr(response, "objects", []) or []:
             props = getattr(obj, "properties", {}) or {}
             meta = getattr(obj, "metadata", None)
-            docs.append(
-                {
-                    "title": props.get("title", ""),
-                    "pmid": props.get("pmid", ""),
-                    "journal": props.get("journal", ""),
-                    "abstract": props.get("abstract", "") or "",
-                    "score": self._score_from_meta(meta),
-                }
-            )
+            docs.append({
+                "title": props.get("title", ""),
+                "pmid": props.get("pmid", ""),
+                "journal": props.get("journal", ""),
+                "abstract": props.get("abstract", "") or "",
+                "score": self._score_from_meta(meta),
+            })
         return self._maybe_rerank(question, docs, num_results)
 
-    # ----- patients -----
     def _build_patient_filter(
         self,
         age_min: Optional[int],
@@ -441,16 +582,8 @@ class WeaviateRAGAgent:
 
         qvec = self.embedder.encode(description).tolist()
         filt = self._build_patient_filter(
-            age_min,
-            age_max,
-            egfr_min,
-            egfr_max,
-            hba1c_min,
-            hba1c_max,
-            diabetes_type,
-            meds_any,
-            comps_any,
-            symp_any,
+            age_min, age_max, egfr_min, egfr_max, hba1c_min, hba1c_max,
+            diabetes_type, meds_any, comps_any, symp_any,
         )
 
         if mode == "vector":
@@ -485,21 +618,19 @@ class WeaviateRAGAgent:
         for obj in getattr(response, "objects", []) or []:
             p = getattr(obj, "properties", {}) or {}
             meta = getattr(obj, "metadata", None)
-            docs.append(
-                {
-                    "patient_id": p.get("patient_id", ""),
-                    "age": p.get("age", ""),
-                    "gender": p.get("gender", ""),
-                    "diabetes_type": p.get("diabetes_type", ""),
-                    "hba1c_current": p.get("hba1c_current", ""),
-                    "egfr": p.get("egfr", ""),
-                    "medications": p.get("medications", []),
-                    "complications": p.get("complications", []),
-                    "symptoms": p.get("symptoms", []),
-                    "clinical_summary": p.get("clinical_summary", ""),
-                    "score": self._score_from_meta(meta),
-                }
-            )
+            docs.append({
+                "patient_id": p.get("patient_id", ""),
+                "age": p.get("age", ""),
+                "gender": p.get("gender", ""),
+                "diabetes_type": p.get("diabetes_type", ""),
+                "hba1c_current": p.get("hba1c_current", ""),
+                "egfr": p.get("egfr", ""),
+                "medications": p.get("medications", []),
+                "complications": p.get("complications", []),
+                "symptoms": p.get("symptoms", []),
+                "clinical_summary": p.get("clinical_summary", ""),
+                "score": self._score_from_meta(meta),
+            })
         return docs
 
     def close(self):
@@ -510,57 +641,67 @@ class WeaviateRAGAgent:
 # Streamlit UI
 # ---------------------------
 def create_streamlit_app():
-    st.set_page_config(page_title="Medical RAG (Weaviate + Separate AI Layer)", page_icon="🏥", layout="wide")
-    st.title("🏥 Medical Research RAG — Papers & Similar Patients")
+    st.set_page_config(page_title="Medical RAG with LM Studio", page_icon="🏥", layout="wide")
+    st.title("🏥 Medical Research RAG — Papers & Similar Patients (LM Studio)")
 
     with st.sidebar:
         st.header("⚙️ Weaviate Connection")
-        weaviate_url = st.text_input("Weaviate URL (REST)", os.getenv("WEAVIATE_URL", "http://localhost:8080"))
+        weaviate_url = st.text_input("Weaviate URL (REST)", os.getenv("WEAVIATE_URL", "http://localhost:9090"))
         grpc_port = st.number_input("gRPC port", 1, 65535, int(os.getenv("WEAVIATE_GRPC_PORT", "50051")))
         skip_checks = st.checkbox("Skip init checks", value=False)
         init_timeout = st.slider("Init timeout (s)", 5, 120, int(os.getenv("WEAVIATE_INIT_TIMEOUT", "30")))
 
-        st.header("🔎 Retrieval (both tabs)")
+        st.header("🔎 Retrieval Settings")
         mode = st.selectbox("Mode", ["hybrid", "vector", "bm25"], index=0)
         alpha = st.slider("Hybrid alpha (vector weight)", 0.0, 1.0, 0.7) if mode == "hybrid" else None
-        bm25_papers_props = st.text_input("Papers properties", "title,abstract,journal")
-        bm25_patients_props = st.text_input("Patients properties", "clinical_summary,medications,symptoms,complications")
-        bm25_papers = [p.strip() for p in bm25_papers_props.split(",") if p.strip()]
-        bm25_patients = [p.strip() for p in bm25_patients_props.split(",") if p.strip()]
         enable_reranker = st.checkbox("Enable local reranker (papers)", value=False)
+        num_results = st.slider("Top-K results", 1, 15, 5)
 
-        st.header("🧠 LLM Provider")
-        provider = st.selectbox("Provider", ["none", "openai", "azure", "ollama"], index=0)
-        llm_model = st.text_input("Model / Deployment", os.getenv("LLM_MODEL", "gpt-4o-mini"))
-        temperature = st.slider("Temperature", 0.0, 1.0, 0.1)
-        max_tokens = st.slider("Max tokens", 256, 2000, 800, step=64)
-        azure_deployment = st.text_input("Azure Deployment (if Azure)", os.getenv("AZURE_OPENAI_DEPLOYMENT", "")) if provider == "azure" else None
-        azure_api_version = st.text_input("Azure API version", os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")) if provider == "azure" else "2024-02-15-preview"
-        ollama_url = st.text_input("Ollama URL", os.getenv("OLLAMA_URL", "http://localhost:11434")) if provider == "ollama" else "http://localhost:11434"
+        st.header("LM Studio Settings")
+        lm_studio_url = st.text_input(
+            "LM Studio URL",
+            os.getenv("LM_STUDIO_URL", "http://localhost:1234"),
+            help="Default LM Studio port is 1234"
+        )
+        model_name = st.text_input(
+            "Model name",
+            os.getenv("LM_MODEL_NAME", "biomistral-7b"),
+            help="Prefer the exact id from GET /v1/models in LM Studio"
+        )
+        temperature = st.slider("Temperature", 0.0, 1.0, 0.2)
+        max_tokens = st.slider("Max tokens", 256, 4000, 1500, step=64)
         show_raw = st.checkbox("Show raw LLM output (debug)", value=False)
 
-        if st.button("🩺 Test LLM"):
+        # Test LM Studio connection
+        if st.button("🧪 Test LM Studio Connection"):
             try:
-                tester = LLMAnswerer(provider=provider, model=llm_model, temperature=temperature,
-                                     max_tokens=256, azure_api_version=azure_api_version,
-                                     azure_deployment=azure_deployment, ollama_url=ollama_url, show_raw=show_raw)
-                raw = tester.generate_raw("Say LLM OK and nothing else.", None, [])
-                cleaned = strip_reasoning(raw)
-                st.success("LLM call succeeded.")
-                st.write("**Cleaned:**")
-                st.code(cleaned or "<empty>")
-                if show_raw:
-                    st.write("**Raw:**")
-                    st.code(tester.last_raw or "<empty>")
+                client = LMStudioClient(
+                    base_url=lm_studio_url,
+                    model=model_name,
+                    temperature=temperature,
+                    max_tokens=256,
+                    show_raw=show_raw
+                )
+                if client.test_connection():
+                    st.success("✅ Connected to LM Studio!")
+                    test_q = "Test"
+                    test_ctx = [{"pmid": "12345", "title": "Test", "journal": "Test", "abstract": "Test"}]
+                    raw = client.generate_raw(test_q, None, test_ctx)
+                    if raw:
+                        st.info(f"Model responding. Output length: {len(raw)} chars")
+                else:
+                    st.error("❌ Cannot connect to LM Studio. Make sure the server is running.")
             except Exception as e:
-                st.error(f"LLM test failed: {e}")
+                st.error(f"LM Studio test failed: {e}")
 
         st.divider()
-        embedding_model = st.text_input("Query embedding model", os.getenv("EMBEDDING_MODEL", "pritamdeka/S-PubMedBert-MS-MARCO"))
-        num_results = st.slider("Top-K", 1, 15, 5)
-        connect = st.button("🔌 Connect / Reconnect", use_container_width=True)
+        embedding_model = st.text_input(
+            "Query embedding model",
+            os.getenv("EMBEDDING_MODEL", "pritamdeka/S-PubMedBert-MS-MARCO")
+        )
+        connect = st.button("🔌 Connect to Weaviate", use_container_width=True)
 
-    # Connect
+    # Connect to Weaviate
     if "agent" not in st.session_state or connect:
         try:
             st.session_state.agent = WeaviateRAGAgent(
@@ -568,26 +709,23 @@ def create_streamlit_app():
                 grpc_port=int(grpc_port),
                 skip_init_checks=skip_checks,
                 init_timeout_secs=int(init_timeout),
-                bm25_properties_papers=bm25_papers,
-                bm25_properties_patients=bm25_patients,
+                bm25_properties_papers=["title", "abstract", "journal"],
+                bm25_properties_patients=["clinical_summary", "medications", "symptoms", "complications"],
                 enable_reranker=enable_reranker,
             )
             if embedding_model:
                 st.session_state.agent.embedder = SentenceTransformer(embedding_model)
             st.success("✅ Connected to Weaviate")
         except Exception as e:
-            st.error(f"Failed to connect: {e}")
+            st.error(f"Failed to connect to Weaviate: {e}")
             st.stop()
 
-    # LLM layer
-    answerer = LLMAnswerer(
-        provider=provider,
-        model=llm_model,
+    # LM Studio client
+    lm_client = LMStudioClient(
+        base_url=lm_studio_url,
+        model=model_name,
         temperature=temperature,
         max_tokens=max_tokens,
-        azure_api_version=azure_api_version,
-        azure_deployment=azure_deployment,
-        ollama_url=ollama_url,
         show_raw=show_raw,
     )
 
@@ -621,27 +759,24 @@ def create_streamlit_app():
                     with c2:
                         st.metric("Score", f"{s['score']:.3f}")
 
-            with st.spinner("Analyzing with LLM..."):
+            with st.spinner("Analyzing with LM Studio..."):
                 try:
-                    ans = answerer.generate(question=q, patient_ctx=None, contexts=docs)
+                    ans = lm_client.generate(question=q, patient_ctx=None, contexts=docs)
                 except Exception as e:
-                    st.error(f"LLM error: {e}")
+                    st.error(f"LM Studio error: {e}")
                     ans = ""
 
-            st.subheader("💡 Evidence-based answer")
             if ans.strip():
-                st.markdown(ans)
+                render_scrollable_markdown("💡 Evidence-based answer", ans, "evidence_answer")
             else:
-                st.info("No LLM output. Showing fallback summary.")
-                st.markdown(_fallback_answer(docs))
-                if show_raw:
-                    st.write("**Raw LLM output:**")
-                    st.code(answerer.last_raw or "<empty>")
+                st.info("No LM Studio output. Check connection and model.")
+
+            if show_raw and lm_client.last_raw:
+                render_scrollable_markdown("Raw LM Studio output", lm_client.last_raw, "raw_papers")
 
     # ----- PATIENTS TAB -----
     with tab_patients:
         st.header("🧍 Find similar patients")
-        # Quick builder
         colA, colB, colC = st.columns(3)
         with colA:
             age = st.number_input("Age", 18, 95, 62, key="p_age")
@@ -661,12 +796,7 @@ def create_streamlit_app():
             f"HbA1c {a1c:.1f}%, eGFR {egfr:.0f}. Meds: {meds}. "
             f"Complications: {comps}. Symptoms: {symps}."
         )
-        desc = st.text_area(
-            "Patient description (used for embedding/search)",
-            value=default_desc,
-            height=100,
-            key="p_desc",
-        )
+        desc = st.text_area("Patient description", value=default_desc, height=100, key="p_desc")
 
         st.subheader("Filters (optional)")
         c1, c2, c3 = st.columns(3)
@@ -680,7 +810,6 @@ def create_streamlit_app():
             f_a1c_min = st.number_input("Min HbA1c", 5.0, 14.0, value=5.0, step=0.1, key="f_a1c_min")
             f_a1c_max = st.number_input("Max HbA1c", 5.0, 14.0, value=14.0, step=0.1, key="f_a1c_max")
 
-        # LLM prompt for cohort analysis
         cohort_q = st.text_input(
             "LLM prompt for cohort analysis",
             "Summarize common patterns and suggest next steps for this cohort.",
@@ -691,11 +820,10 @@ def create_streamlit_app():
         comp_list = [m.strip() for m in comps.split(",") if m.strip()]
         symp_list = [m.strip() for m in symps.split(",") if m.strip()]
 
-        # Single button: retrieve + analyze (like Papers tab)
         run_btn = st.button("🔍 Retrieve & Analyze (Patients)", type="primary", key="btn_patients")
 
         if run_btn:
-            # 1) Retrieve
+            # Retrieve similar patients
             with st.spinner("Retrieving similar patients..."):
                 results = st.session_state.agent.retrieve_patients(
                     description=desc,
@@ -715,81 +843,104 @@ def create_streamlit_app():
                 )
             st.session_state["patients_results"] = results
 
-            # 2) Analyze immediately with LLM
-            with st.spinner("Analyzing cohort with LLM..."):
+            # ---------- Treatment audit ----------
+            auditor = TreatmentAuditor()
+            summary = auditor.cohort_summary(results)
+            st.session_state["audit_summary"] = summary
+
+            # Input patient quick audit
+            input_patient = {
+                "age": age,
+                "gender": gender,
+                "diabetes_type": dia_type,
+                "hba1c_current": a1c,
+                "egfr": egfr,
+                "medications": med_list,
+                "complications": comp_list,
+                "symptoms": symp_list,
+                "clinical_summary": desc,
+            }
+            st.session_state["input_patient_audit"] = auditor.audit_patient(input_patient)
+
+            # Optional LLM narrative for cohort
+            with st.spinner("Analyzing cohort with LM Studio..."):
                 try:
-                    ans_pat = answerer.generate(question=cohort_q, patient_ctx=None, contexts=results)
+                    ans_pat = lm_client.generate(question=cohort_q, patient_ctx=None, contexts=results)
                 except Exception as e:
-                    st.error(f"LLM error: {e}")
+                    st.error(f"LM Studio error: {e}")
                     ans_pat = ""
             st.session_state["patients_llm_answer"] = ans_pat
-            st.session_state["patients_llm_raw"] = answerer.last_raw
+            st.session_state["patients_llm_raw"] = lm_client.last_raw
 
-        # Always render from session (survives reruns)
+        # ---------- Display ----------
         patients = st.session_state.get("patients_results", [])
+        audit_summary = st.session_state.get("audit_summary")
+        input_audit = st.session_state.get("input_patient_audit")
         ans_pat = st.session_state.get("patients_llm_answer", "")
         raw_pat = st.session_state.get("patients_llm_raw", "")
 
         st.subheader("👥 Matches")
         if patients:
-            for i, p in enumerate(patients, 1):
-                with st.expander(f"🧍 Patient {i}: {p.get('patient_id','')}  —  Score {p['score']:.3f}"):
+            auditor = TreatmentAuditor()
+            per_patient = audit_summary["per_patient"] if audit_summary else [auditor.audit_patient(p) for p in patients]
+            for i, (p, ar) in enumerate(zip(patients, per_patient), 1):
+                color = {"ok":"✅", "missing_indication":"🔎", "caution":"⚠️", "contra":"⛔️"}[ar.status]
+                with st.expander(f"{color} Patient {i}: {p.get('patient_id','')}  —  Score {p['score']:.3f}"):
                     st.write(f"**Age/Gender/Type:** {p['age']} / {p['gender']} / {p['diabetes_type']}")
                     st.write(f"**HbA1c / eGFR:** {p['hba1c_current']}% / {p['egfr']}")
                     st.write(f"**Medications:** {', '.join(p['medications']) if p['medications'] else '—'}")
                     st.write(f"**Complications:** {', '.join(p['complications']) if p['complications'] else '—'}")
                     st.write(f"**Symptoms:** {', '.join(p['symptoms']) if p['symptoms'] else '—'}")
-                    st.write(f"**Summary:** {(p.get('clinical_summary') or '')[:1200]}...")
+                    st.write(f"**Summary:** {(p.get('clinical_summary') or '')[:800]}...")
+                    if ar.reasons:
+                        st.markdown("**Treatment audit:**")
+                        for r in ar.reasons:
+                            st.write("- " + r)
         else:
             st.info("Run a search to see similar patients.")
 
-        st.subheader("💡 Cohort analysis")
+        # ---------- Cohort treatment audit ----------
+        if audit_summary:
+            st.subheader("Cohort treatment audit (signals)")
+            c = audit_summary["counts"]; pos = audit_summary["positives"]; neg = audit_summary["negatives"]
+            st.write(
+                f"- Status — OK: {c['ok']} · Missing indication: {c['missing_indication']} · "
+                f"Caution: {c['caution']} · Contra: {c['contra']}"
+            )
+            st.write(
+                f"- Positives — CKD+SGLT2: {pos['ckd+sglt2']} · HF+SGLT2: {pos['hf+sglt2']} · "
+                f"ASCVD+CV agent: {pos['ascvd+cv_agent']}"
+            )
+            st.write(
+                f"- Negatives — Metformin eGFR<30: {neg['met_eGFR<30']} · TZD in HF: {neg['tzd_hf']} · "
+                f"SU in elderly: {neg['su_elderly']}"
+            )
+
+        # ---------- Input patient decision checklist ----------
+        if input_audit:
+            st.subheader("Input patient — decision checklist")
+            icon = {"ok":"✅","missing_indication":"🔎","caution":"⚠️","contra":"⛔️"}[input_audit.status]
+            st.write(f"{icon} **Overall status:** {input_audit.status.upper()}")
+            if input_audit.reasons:
+                st.markdown("**Signals:**")
+                for r in input_audit.reasons:
+                    st.write("- " + r)
+            st.caption("Heuristic audit. For education only — not medical advice.")
+
+        # Cohort LLM analysis
+        st.subheader("Cohort analysis (LLM)")
         if ans_pat and ans_pat.strip():
-            st.markdown(ans_pat)
+            render_scrollable_markdown("💡 Cohort analysis", ans_pat, "cohort_analysis")
         elif patients:
-            st.info("No LLM output. Showing fallback summary of first matches.")
-            st.markdown(_fallback_patients(patients))
-        else:
-            st.caption("No cohort loaded yet.")
+            st.info("No LM Studio output for cohort analysis.")
         if show_raw and raw_pat:
-            st.write("**Raw LLM output (patients):**")
-            st.code(raw_pat or "<empty>")
+            render_scrollable_markdown("Raw LM Studio output (patients)", raw_pat, "raw_patients")
 
     st.caption("Note: Demo system. Not medical advice.")
 
 
-def _fallback_answer(sources: List[Dict]) -> str:
-    if not sources:
-        return "No relevant research papers found for your question."
-    lines = [f"Based on {len(sources)} research papers:\n"]
-    for i, s in enumerate(sources, 1):
-        lines.append(f"**Paper {i}**: {s['title']}")
-        lines.append(f"- Journal: {s['journal']}")
-        lines.append(f"- Key Finding: {(s.get('abstract') or '')[:200]}...")
-        lines.append(f"- Score: {s.get('score', 0):.3f}\n")
-    return "\n".join(lines)
-
-
-def _fallback_patients(pats: List[Dict]) -> str:
-    if not pats:
-        return "No similar patients found."
-    lines = [f"Top {len(pats)} similar patients:\n"]
-    for i, p in enumerate(pats, 1):
-        lines.append(f"**Patient {i} ({p.get('patient_id','')})** — Score {p['score']:.3f}")
-        lines.append(
-            f"- Age {p['age']}, {p['gender']}, {p['diabetes_type']}; "
-            f"HbA1c {p['hba1c_current']}%, eGFR {p['egfr']}"
-        )
-        lines.append(
-            f"- Meds: {', '.join(p['medications']) if p['medications'] else '—'}; "
-            f"Complications: {', '.join(p['complications']) if p['complications'] else '—'}"
-        )
-        lines.append(f"- Summary: {(p.get('clinical_summary') or '')[:180]}...\n")
-    return "\n".join(lines)
-
-
 # ---------------------------
-# Entry
+# Entry Point
 # ---------------------------
 if __name__ == "__main__":
     create_streamlit_app()
